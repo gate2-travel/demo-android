@@ -2752,11 +2752,11 @@ The SDK uses ISO 4217 3-letter currency codes.
 
 | Resource | Contact |
 |----------|---------|
-| **Documentation** | [docs.gate2.travel](https://docs.gate2.travel) |
+| **SDK Documentation** | [Github Page](https://github.com/gate2-travel/demo-android/blob/main/README.md) |
+| **API Documentation** | [Postman Collection](https://documenter.getpostman.com/view/7713462/2sB3dWq6UM)
 | **Developer Portal** | [developers.gate2.travel](https://developers.gate2.travel) |
 | **GitHub Issues** | [github.com/gate2/travel-sdk-android](https://github.com/gate2/travel-sdk-android) |
-| **Email Support** | sdk-support@gate2.travel |
-| **API Status** | [status.gate2.travel](https://status.gate2.travel) |
+| **Email Support** | [Mail to support@gate2.travel](mailto:support@gate2.travel) |
 
 ---
 
