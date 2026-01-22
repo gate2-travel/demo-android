@@ -1200,7 +1200,42 @@ dependencies {
 
 ## 4.3 Theming & Branding
 
+The SDK provides comprehensive customization options to match your brand identity. Every visual element can be configured including colors, shapes, buttons, inputs, cards, and typography.
+
+### Theme Architecture
+
+```
+Gate2Theme
+├── Colors
+│   ├── PrimaryColors (main, dark, light, onPrimary)
+│   ├── SecondaryColors (main, dark, light, onSecondary)
+│   ├── BackgroundColors (background, surface, card, divider, border)
+│   ├── TextColors (primary, secondary, hint, disabled, link)
+│   └── StatusColors (success, warning, error, info)
+├── Shapes
+│   ├── ButtonShape (cornerRadius, borderWidth)
+│   ├── CardShape (cornerRadius, elevation, shadowColor)
+│   ├── InputShape (cornerRadius, borderWidth, borderColor)
+│   └── DialogShape (cornerRadius)
+├── ButtonStyles
+│   ├── PrimaryButton (background, text, icon, disabled, pressed, ripple)
+│   ├── SecondaryButton (background, text, border, disabled)
+│   └── TextButton (text, disabled, ripple)
+├── InputStyles
+│   ├── TextField (background, text, hint, border, focused, error)
+│   └── Dropdown (background, text, icon, border)
+├── CardStyles
+│   └── Card (background, border, shadow)
+└── Typography
+    ├── Fonts (heading, body, button)
+    └── Sizes (title, subtitle, body, caption)
+```
+
+---
+
 ### Quick Theming
+
+For simple brand color customization:
 
 ```kotlin
 Gate2Theme.simple(
@@ -1209,65 +1244,527 @@ Gate2Theme.simple(
 )
 ```
 
-### Theme Architecture
+---
 
-```
-Gate2Theme
-├── PrimaryColors (main, dark, light, onPrimary)
-├── SecondaryColors (main, dark, light, onSecondary)
-├── BackgroundColors (background, surface, card, divider, border)
-├── TextColors (primary, secondary, hint, disabled, link)
-└── StatusColors (success, warning, error, info)
-```
+### Button Customization
 
-### Complete Theme Configuration
+#### Button Corner Radius
 
 ```kotlin
-val customTheme = Gate2Theme.builder()
+val theme = Gate2Theme.builder()
+    .shapes(
+        Gate2Shapes.builder()
+            // Rounded buttons (pill shape)
+            .buttonCornerRadius(24.dp)
+            // Or square buttons
+            // .buttonCornerRadius(0.dp)
+            // Or slightly rounded
+            // .buttonCornerRadius(8.dp)
+            .build()
+    )
+    .build()
+```
+
+#### Button Colors
+
+```kotlin
+val theme = Gate2Theme.builder()
+    .buttonStyles(
+        ButtonStyles.builder()
+            // Primary Button (main CTA buttons)
+            .primaryButton(
+                PrimaryButtonStyle.builder()
+                    .backgroundColor(0xFF1A73E8.toInt())      // Button background
+                    .backgroundColorPressed(0xFF1557B0.toInt()) // When pressed
+                    .backgroundColorDisabled(0xFFE8EAED.toInt()) // When disabled
+                    .textColor(0xFFFFFFFF.toInt())            // Button text
+                    .textColorDisabled(0xFF9AA0A6.toInt())    // Disabled text
+                    .iconColor(0xFFFFFFFF.toInt())            // Icon tint
+                    .iconColorDisabled(0xFF9AA0A6.toInt())    // Disabled icon
+                    .rippleColor(0x401A73E8.toInt())          // Ripple effect
+                    .elevation(4.dp)                           // Shadow elevation
+                    .elevationPressed(8.dp)                    // Elevation when pressed
+                    .build()
+            )
+            // Secondary Button (outline buttons)
+            .secondaryButton(
+                SecondaryButtonStyle.builder()
+                    .backgroundColor(0x00000000.toInt())      // Transparent
+                    .backgroundColorPressed(0x1A1A73E8.toInt()) // Light fill when pressed
+                    .borderColor(0xFF1A73E8.toInt())          // Border color
+                    .borderColorDisabled(0xFFE8EAED.toInt())  // Disabled border
+                    .borderWidth(1.5.dp)                       // Border thickness
+                    .textColor(0xFF1A73E8.toInt())            // Text color
+                    .textColorDisabled(0xFF9AA0A6.toInt())    // Disabled text
+                    .build()
+            )
+            // Text Button (minimal buttons)
+            .textButton(
+                TextButtonStyle.builder()
+                    .textColor(0xFF1A73E8.toInt())
+                    .textColorPressed(0xFF1557B0.toInt())
+                    .textColorDisabled(0xFF9AA0A6.toInt())
+                    .rippleColor(0x1A1A73E8.toInt())
+                    .build()
+            )
+            .build()
+    )
+    .build()
+```
+
+#### Button Shapes Reference
+
+| Shape Type | Corner Radius | Example Use Case |
+|------------|---------------|------------------|
+| **Square** | `0.dp` | Modern, sharp design |
+| **Slightly Rounded** | `4.dp` - `8.dp` | Professional, subtle |
+| **Rounded** | `12.dp` - `16.dp` | Friendly, approachable |
+| **Pill / Capsule** | `24.dp` - `50.dp` | Playful, modern |
+| **Circle** | `50%` or large value | Icon buttons |
+
+---
+
+### Input Field Customization
+
+```kotlin
+val theme = Gate2Theme.builder()
+    .inputStyles(
+        InputStyles.builder()
+            .textField(
+                TextFieldStyle.builder()
+                    // Background
+                    .backgroundColor(0xFFFFFFFF.toInt())
+                    .backgroundColorFocused(0xFFF8F9FA.toInt())
+                    .backgroundColorError(0xFFFCE8E6.toInt())
+                    .backgroundColorDisabled(0xFFF1F3F4.toInt())
+                    // Border
+                    .borderColor(0xFFDADCE0.toInt())
+                    .borderColorFocused(0xFF1A73E8.toInt())
+                    .borderColorError(0xFFEA4335.toInt())
+                    .borderColorDisabled(0xFFE8EAED.toInt())
+                    .borderWidth(1.dp)
+                    .borderWidthFocused(2.dp)
+                    // Corner Radius
+                    .cornerRadius(8.dp)
+                    // Text Colors
+                    .textColor(0xFF202124.toInt())
+                    .textColorDisabled(0xFF9AA0A6.toInt())
+                    .hintColor(0xFF9AA0A6.toInt())
+                    .labelColor(0xFF5F6368.toInt())
+                    .labelColorFocused(0xFF1A73E8.toInt())
+                    .labelColorError(0xFFEA4335.toInt())
+                    // Helper & Error Text
+                    .helperTextColor(0xFF5F6368.toInt())
+                    .errorTextColor(0xFFEA4335.toInt())
+                    // Cursor
+                    .cursorColor(0xFF1A73E8.toInt())
+                    // Selection
+                    .selectionHandleColor(0xFF1A73E8.toInt())
+                    .selectionBackgroundColor(0x401A73E8.toInt())
+                    .build()
+            )
+            .dropdown(
+                DropdownStyle.builder()
+                    .backgroundColor(0xFFFFFFFF.toInt())
+                    .textColor(0xFF202124.toInt())
+                    .hintColor(0xFF9AA0A6.toInt())
+                    .iconColor(0xFF5F6368.toInt())
+                    .borderColor(0xFFDADCE0.toInt())
+                    .borderColorFocused(0xFF1A73E8.toInt())
+                    .cornerRadius(8.dp)
+                    // Dropdown Menu
+                    .menuBackgroundColor(0xFFFFFFFF.toInt())
+                    .menuItemTextColor(0xFF202124.toInt())
+                    .menuItemSelectedBackgroundColor(0xFFE8F0FE.toInt())
+                    .menuItemHoverBackgroundColor(0xFFF8F9FA.toInt())
+                    .menuElevation(8.dp)
+                    .menuCornerRadius(8.dp)
+                    .build()
+            )
+            .build()
+    )
+    .build()
+```
+
+---
+
+### Card Customization
+
+```kotlin
+val theme = Gate2Theme.builder()
+    .cardStyles(
+        CardStyles.builder()
+            .card(
+                CardStyle.builder()
+                    // Background
+                    .backgroundColor(0xFFFFFFFF.toInt())
+                    .backgroundColorPressed(0xFFF8F9FA.toInt())
+                    .backgroundColorSelected(0xFFE8F0FE.toInt())
+                    // Border
+                    .borderColor(0xFFE8EAED.toInt())
+                    .borderColorSelected(0xFF1A73E8.toInt())
+                    .borderWidth(1.dp)
+                    // Corner Radius
+                    .cornerRadius(12.dp)
+                    // Elevation & Shadow
+                    .elevation(2.dp)
+                    .elevationPressed(4.dp)
+                    .shadowColor(0x1A000000.toInt())
+                    // Ripple
+                    .rippleColor(0x1A000000.toInt())
+                    .build()
+            )
+            // Flight/Hotel/Plan Result Cards
+            .resultCard(
+                ResultCardStyle.builder()
+                    .backgroundColor(0xFFFFFFFF.toInt())
+                    .borderColor(0xFFE8EAED.toInt())
+                    .cornerRadius(16.dp)
+                    .elevation(4.dp)
+                    // Price Badge
+                    .priceBadgeBackgroundColor(0xFF1A73E8.toInt())
+                    .priceBadgeTextColor(0xFFFFFFFF.toInt())
+                    .priceBadgeCornerRadius(8.dp)
+                    .build()
+            )
+            .build()
+    )
+    .build()
+```
+
+---
+
+### Shape Configuration (Global Corner Radius)
+
+Configure corner radius for all components at once:
+
+```kotlin
+val theme = Gate2Theme.builder()
+    .shapes(
+        Gate2Shapes.builder()
+            // Buttons
+            .buttonCornerRadius(12.dp)
+            .buttonBorderWidth(1.5.dp)
+            // Cards
+            .cardCornerRadius(16.dp)
+            .cardElevation(4.dp)
+            // Input Fields
+            .inputCornerRadius(8.dp)
+            .inputBorderWidth(1.dp)
+            // Dialogs
+            .dialogCornerRadius(24.dp)
+            // Bottom Sheets
+            .bottomSheetCornerRadius(24.dp)
+            // Chips/Tags
+            .chipCornerRadius(16.dp)
+            // Images
+            .imageCornerRadius(8.dp)
+            // Snackbar
+            .snackbarCornerRadius(8.dp)
+            .build()
+    )
+    .build()
+```
+
+#### Preset Shape Styles
+
+```kotlin
+// Sharp/Square Design
+Gate2Shapes.sharp()  // All corners = 0.dp
+
+// Slightly Rounded (Default)
+Gate2Shapes.rounded()  // Subtle rounding
+
+// Very Rounded (Friendly)
+Gate2Shapes.veryRounded()  // More pronounced rounding
+
+// Pill Style
+Gate2Shapes.pill()  // Maximum rounding for buttons
+```
+
+---
+
+### Color Customization
+
+#### Primary & Secondary Colors
+
+```kotlin
+val theme = Gate2Theme.builder()
     .primaryColors(
         PrimaryColors.builder()
-            .main(0xFF1A73E8.toInt())
-            .dark(0xFF1557B0.toInt())
-            .light(0xFF4A90D9.toInt())
+            .main(0xFF1A73E8.toInt())        // Main brand color
+            .dark(0xFF1557B0.toInt())        // Darker variant (pressed states)
+            .light(0xFF4A90D9.toInt())       // Lighter variant (backgrounds)
+            .onPrimary(0xFFFFFFFF.toInt())   // Text/icons on primary color
+            .build()
+    )
+    .secondaryColors(
+        SecondaryColors.builder()
+            .main(0xFF34A853.toInt())        // Secondary brand color
+            .dark(0xFF2E7D4A.toInt())        // Darker variant
+            .light(0xFF5CBC6E.toInt())       // Lighter variant
+            .onSecondary(0xFFFFFFFF.toInt()) // Text/icons on secondary color
+            .build()
+    )
+    .build()
+```
+
+#### Background Colors
+
+```kotlin
+val theme = Gate2Theme.builder()
+    .backgroundColors(
+        BackgroundColors.builder()
+            .background(0xFFFFFFFF.toInt())   // Main screen background
+            .surface(0xFFF8F9FA.toInt())      // Elevated surface background
+            .card(0xFFFFFFFF.toInt())         // Card background
+            .divider(0xFFE8EAED.toInt())      // Divider lines
+            .border(0xFFDADCE0.toInt())       // Border color
+            .overlay(0x80000000.toInt())      // Modal overlay
+            .scrim(0x52000000.toInt())        // Bottom sheet scrim
+            .build()
+    )
+    .build()
+```
+
+#### Text Colors
+
+```kotlin
+val theme = Gate2Theme.builder()
+    .textColors(
+        TextColors.builder()
+            .primary(0xFF202124.toInt())      // Main text
+            .secondary(0xFF5F6368.toInt())    // Secondary text
+            .tertiary(0xFF80868B.toInt())     // Tertiary/caption text
+            .hint(0xFF9AA0A6.toInt())         // Placeholder text
+            .disabled(0xFFBDC1C6.toInt())     // Disabled text
+            .link(0xFF1A73E8.toInt())         // Clickable links
+            .linkVisited(0xFF7B1FA2.toInt())  // Visited links
+            .onDark(0xFFFFFFFF.toInt())       // Text on dark backgrounds
+            .onLight(0xFF202124.toInt())      // Text on light backgrounds
+            .build()
+    )
+    .build()
+```
+
+#### Status Colors
+
+```kotlin
+val theme = Gate2Theme.builder()
+    .statusColors(
+        StatusColors.builder()
+            // Success (green)
+            .success(0xFF34A853.toInt())
+            .successLight(0xFFE6F4EA.toInt())
+            .onSuccess(0xFFFFFFFF.toInt())
+            // Warning (yellow/amber)
+            .warning(0xFFFBBC04.toInt())
+            .warningLight(0xFFFEF7E0.toInt())
+            .onWarning(0xFF202124.toInt())
+            // Error (red)
+            .error(0xFFEA4335.toInt())
+            .errorLight(0xFFFCE8E6.toInt())
+            .onError(0xFFFFFFFF.toInt())
+            // Info (blue)
+            .info(0xFF4285F4.toInt())
+            .infoLight(0xFFE8F0FE.toInt())
+            .onInfo(0xFFFFFFFF.toInt())
+            .build()
+    )
+    .build()
+```
+
+---
+
+### Icon Customization
+
+```kotlin
+val theme = Gate2Theme.builder()
+    .iconColors(
+        IconColors.builder()
+            .primary(0xFF5F6368.toInt())      // Default icon color
+            .secondary(0xFF9AA0A6.toInt())    // Secondary icons
+            .active(0xFF1A73E8.toInt())       // Active/selected icons
+            .disabled(0xFFBDC1C6.toInt())     // Disabled icons
+            .onPrimary(0xFFFFFFFF.toInt())    // Icons on primary background
+            .onSurface(0xFF5F6368.toInt())    // Icons on surface
+            .build()
+    )
+    .build()
+```
+
+---
+
+### Typography Customization
+
+```kotlin
+val theme = Gate2Theme.builder()
+    .typography(
+        Gate2Typography.builder()
+            // Font Families
+            .headingFontFamily(FontFamily.SansSerif)
+            .bodyFontFamily(FontFamily.SansSerif)
+            .buttonFontFamily(FontFamily.SansSerif)
+            // Or custom fonts:
+            // .headingFontFamily(FontFamily(Font(R.font.your_heading_font)))
+
+            // Font Sizes
+            .displayLarge(32.sp)
+            .displayMedium(28.sp)
+            .headlineLarge(24.sp)
+            .headlineMedium(20.sp)
+            .titleLarge(18.sp)
+            .titleMedium(16.sp)
+            .bodyLarge(16.sp)
+            .bodyMedium(14.sp)
+            .bodySmall(12.sp)
+            .labelLarge(14.sp)
+            .labelMedium(12.sp)
+            .labelSmall(10.sp)
+
+            // Font Weights
+            .headingWeight(FontWeight.Bold)
+            .titleWeight(FontWeight.SemiBold)
+            .bodyWeight(FontWeight.Normal)
+            .buttonWeight(FontWeight.Medium)
+
+            // Letter Spacing
+            .headingLetterSpacing((-0.5).sp)
+            .bodyLetterSpacing(0.sp)
+            .buttonLetterSpacing(0.5.sp)
+
+            // Line Heights
+            .headingLineHeight(1.2.em)
+            .bodyLineHeight(1.5.em)
+            .build()
+    )
+    .build()
+```
+
+---
+
+### Complete Theme Example
+
+Here's a complete example with all customization options:
+
+```kotlin
+val myBrandTheme = Gate2Theme.builder()
+    // Colors
+    .primaryColors(
+        PrimaryColors.builder()
+            .main(0xFF6200EE.toInt())         // Purple brand
+            .dark(0xFF3700B3.toInt())
+            .light(0xFFBB86FC.toInt())
             .onPrimary(0xFFFFFFFF.toInt())
             .build()
     )
     .secondaryColors(
         SecondaryColors.builder()
-            .main(0xFF34A853.toInt())
-            .dark(0xFF2E7D4A.toInt())
-            .light(0xFF5CBC6E.toInt())
-            .onSecondary(0xFFFFFFFF.toInt())
+            .main(0xFF03DAC6.toInt())         // Teal accent
+            .dark(0xFF018786.toInt())
+            .light(0xFF66FFF9.toInt())
+            .onSecondary(0xFF000000.toInt())
             .build()
     )
     .backgroundColors(
         BackgroundColors.builder()
-            .background(0xFFFFFFFF.toInt())
-            .surface(0xFFF8F9FA.toInt())
+            .background(0xFFFAFAFA.toInt())
+            .surface(0xFFFFFFFF.toInt())
             .card(0xFFFFFFFF.toInt())
-            .divider(0xFFE8EAED.toInt())
-            .border(0xFFDADCE0.toInt())
+            .divider(0xFFE0E0E0.toInt())
+            .border(0xFFBDBDBD.toInt())
             .build()
     )
     .textColors(
         TextColors.builder()
-            .primary(0xFF202124.toInt())
-            .secondary(0xFF5F6368.toInt())
-            .hint(0xFF9AA0A6.toInt())
-            .disabled(0xFFBDC1C6.toInt())
-            .link(0xFF1A73E8.toInt())
+            .primary(0xFF212121.toInt())
+            .secondary(0xFF757575.toInt())
+            .hint(0xFF9E9E9E.toInt())
+            .disabled(0xFFBDBDBD.toInt())
+            .link(0xFF6200EE.toInt())
             .build()
     )
     .statusColors(
         StatusColors.builder()
-            .success(0xFF34A853.toInt())
-            .warning(0xFFFBBC04.toInt())
-            .error(0xFFEA4335.toInt())
-            .info(0xFF4285F4.toInt())
+            .success(0xFF4CAF50.toInt())
+            .warning(0xFFFF9800.toInt())
+            .error(0xFFF44336.toInt())
+            .info(0xFF2196F3.toInt())
+            .build()
+    )
+    // Shapes
+    .shapes(
+        Gate2Shapes.builder()
+            .buttonCornerRadius(24.dp)        // Pill-shaped buttons
+            .cardCornerRadius(16.dp)          // Rounded cards
+            .inputCornerRadius(12.dp)         // Rounded inputs
+            .dialogCornerRadius(28.dp)        // Rounded dialogs
+            .build()
+    )
+    // Button Styles
+    .buttonStyles(
+        ButtonStyles.builder()
+            .primaryButton(
+                PrimaryButtonStyle.builder()
+                    .backgroundColor(0xFF6200EE.toInt())
+                    .backgroundColorPressed(0xFF3700B3.toInt())
+                    .textColor(0xFFFFFFFF.toInt())
+                    .elevation(6.dp)
+                    .build()
+            )
+            .secondaryButton(
+                SecondaryButtonStyle.builder()
+                    .backgroundColor(0x00000000.toInt())
+                    .borderColor(0xFF6200EE.toInt())
+                    .borderWidth(2.dp)
+                    .textColor(0xFF6200EE.toInt())
+                    .build()
+            )
+            .build()
+    )
+    // Input Styles
+    .inputStyles(
+        InputStyles.builder()
+            .textField(
+                TextFieldStyle.builder()
+                    .backgroundColor(0xFFFFFFFF.toInt())
+                    .borderColor(0xFFBDBDBD.toInt())
+                    .borderColorFocused(0xFF6200EE.toInt())
+                    .cornerRadius(12.dp)
+                    .cursorColor(0xFF6200EE.toInt())
+                    .build()
+            )
+            .build()
+    )
+    // Card Styles
+    .cardStyles(
+        CardStyles.builder()
+            .card(
+                CardStyle.builder()
+                    .backgroundColor(0xFFFFFFFF.toInt())
+                    .cornerRadius(16.dp)
+                    .elevation(4.dp)
+                    .borderColor(0xFFE0E0E0.toInt())
+                    .build()
+            )
             .build()
     )
     .build()
+
+// Apply to SDK
+setContent {
+    Gate2TravelTheme(theme = myBrandTheme) {
+        Gate2TravelScreen(
+            onComplete = { finish() },
+            onCancel = { finish() },
+            onFail = { error -> showError(error) },
+            onProcessPayment = { request -> processPayment(request) }
+        )
+    }
+}
 ```
+
+---
 
 ### Color Categories Reference
 
@@ -1278,6 +1775,21 @@ val customTheme = Gate2Theme.builder()
 | **Background** | background, surface, card, divider, border | Screens, cards |
 | **Text** | primary, secondary, hint, disabled, link | All text content |
 | **Status** | success, warning, error, info | Feedback indicators |
+| **Button** | backgroundColor, textColor, borderColor | All button types |
+| **Input** | backgroundColor, borderColor, textColor | Form fields |
+| **Card** | backgroundColor, borderColor, elevation | Cards and panels |
+| **Icon** | primary, active, disabled | All icons |
+
+### Shape Reference
+
+| Component | Property | Default | Description |
+|-----------|----------|---------|-------------|
+| **Button** | cornerRadius | 12.dp | Button corner rounding |
+| **Card** | cornerRadius | 12.dp | Card corner rounding |
+| **Input** | cornerRadius | 8.dp | Input field corner rounding |
+| **Dialog** | cornerRadius | 24.dp | Dialog corner rounding |
+| **Chip** | cornerRadius | 16.dp | Tag/chip corner rounding |
+| **Image** | cornerRadius | 8.dp | Image corner rounding |
 
 ---
 
