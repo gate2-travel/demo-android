@@ -515,26 +515,3 @@ Gate2SdkConfig.builder()
 ```
 
 ---
-
-## Support
-
-| Resource | Contact |
-|----------|---------|
-| **Documentation** | [docs.gate2.travel](https://docs.gate2.travel) |
-| **Email Support** | [support@gate2.travel](mailto:support@gate2.travel) |
-
----
-
-## License
-
-Commercial License - See https://gate2.travel/license
-
----
-
-<div align="center">
-
-**Gate2 eSIM SDK** - Complete eSIM Solution for Android
-
-© 2026 Gate2 Travel. All rights reserved.
-
-</div>
