@@ -4,7 +4,7 @@
 
 ### Complete eSIM Data Plan Solution for Android
 
-[![SDK Version](https://img.shields.io/badge/SDK-1.0.0-blue.svg)](https://central.sonatype.com/search?q=travel.gate2)
+[![SDK Version](https://img.shields.io/badge/SDK-1.0.2-blue.svg)](https://central.sonatype.com/search?q=travel.gate2)
 [![Platform](https://img.shields.io/badge/Platform-Android-green.svg)](https://developer.android.com)
 [![Min SDK](https://img.shields.io/badge/minSdk-27-orange.svg)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.2.21-purple.svg)](https://kotlinlang.org)
@@ -86,8 +86,7 @@ The **Gate2 eSIM SDK** is a comprehensive, production-ready Android library that
 ```kotlin
 // app/build.gradle.kts
 dependencies {
-    implementation("travel.gate2:core:1.0.0")
-    implementation("travel.gate2:esim:1.0.0")
+    implementation("travel.gate2:esim:1.0.2")
 }
 ```
 
@@ -104,9 +103,12 @@ class MyApplication : Application() {
         Gate2TravelSdk.initialize(
             Gate2SdkConfig.builder()
                 .context(this)
-                .apiKey("your-api-key-here")
-                .sessionId(UUID.randomUUID().toString())
-                .userId("user-123")
+                .apiKey(BuildConfig.API_KEY)
+                .enableLogging(BuildConfig.DEBUG)
+                .clientCertificate(
+                    pkcs12 = resources.openRawResource(R.raw.client_cert),
+                    password = BuildConfig.CLIENT_CERT_PASSWORD
+                )
                 .build()
         )
     }
@@ -217,9 +219,7 @@ The SDK implements a complete **5-screen purchase flow**:
 |-----------|----------|-------------|
 | `context` | Yes | Application or Activity context |
 | `apiKey` | Yes | Your Gate2 API key |
-| `sessionId` | Yes | Unique session identifier (UUID recommended) |
-| `userId` | Yes | Your user's unique identifier |
-| `email` | No | User's email for order confirmation |
+| `clientCertificate` | Yes | mTLS client certificate (`.p12`) and password |
 | `enableLogging` | No | Enable debug logging (default: false) |
 | `theme` | No | Custom theme configuration |
 
@@ -320,9 +320,11 @@ For simple brand color customization:
 Gate2TravelSdk.initialize(
     Gate2SdkConfig.builder()
         .context(this)
-        .apiKey("your-api-key")
-        .sessionId(UUID.randomUUID().toString())
-        .userId("user-123")
+        .apiKey(BuildConfig.API_KEY)
+        .clientCertificate(
+            pkcs12 = resources.openRawResource(R.raw.client_cert),
+            password = BuildConfig.CLIENT_CERT_PASSWORD
+        )
         .theme(
             Gate2Theme.builder()
                 .primaryColors(
@@ -376,10 +378,11 @@ class MyApp : Application() {
             Gate2SdkConfig.builder()
                 .context(this)
                 .apiKey(BuildConfig.GATE2_API_KEY)
-                .sessionId(UUID.randomUUID().toString())
-                .userId("user-123")
-                .email("user@example.com")
                 .enableLogging(BuildConfig.DEBUG)
+                .clientCertificate(
+                    pkcs12 = resources.openRawResource(R.raw.client_cert),
+                    password = BuildConfig.CLIENT_CERT_PASSWORD
+                )
                 .build()
         )
     }
@@ -479,7 +482,7 @@ onFail = { errorMessage ->
 
 - [ ] SDK initialized in `Application.onCreate()`
 - [ ] Valid API key configured
-- [ ] `userId` is set in configuration
+- [ ] Client certificate (`.p12`) configured
 - [ ] Internet connection available
 - [ ] Using `Gate2TravelTheme` wrapper
 - [ ] Compatible Android version (API 27+)
@@ -502,16 +505,26 @@ class MyApplication : Application() {
 <application android:name=".MyApplication">
 ```
 
-#### "userId is required"
+#### "Authentication failed"
 
 ```kotlin
-// Ensure userId is set in configuration
+// Ensure API key and client certificate are set correctly
 Gate2SdkConfig.builder()
     .context(this)
-    .apiKey("your-api-key")
-    .sessionId(UUID.randomUUID().toString())
-    .userId("user-123")  // Required for eSIM orders
+    .apiKey(BuildConfig.API_KEY)
+    .clientCertificate(
+        pkcs12 = resources.openRawResource(R.raw.client_cert),
+        password = BuildConfig.CLIENT_CERT_PASSWORD
+    )
     .build()
 ```
 
 ---
+
+<div align="center">
+
+**Gate2 eSIM SDK** - Complete eSIM Solution for Android
+
+© 2026 Gate2 Travel. All rights reserved.
+
+</div>
