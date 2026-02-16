@@ -14,13 +14,14 @@ Drop-in eSIM data-plan purchasing flow for Android.
 
 You will also need:
 - **Gate2 API key** — obtain from [gate2.travel](https://gate2.travel)
-- **Client certificate** (`.p12`) for mTLS — provided by Gate2
+
+> **Note:** The client certificate for mTLS is embedded within the SDK. No certificate management is required.
 
 ## Installation
 
 ```kotlin
 dependencies {
-    implementation("travel.gate2:esim:1.0.2")
+    implementation("travel.gate2:esim:1.2.0")
 }
 ```
 
@@ -55,23 +56,21 @@ class MyApp : Application() {
                 .context(this)
                 .apiKey(BuildConfig.API_KEY)
                 .enableLogging(BuildConfig.DEBUG)
-                .clientCertificate(
-                    pkcs12 = resources.openRawResource(R.raw.client_cert),
-                    password = BuildConfig.CLIENT_CERT_PASSWORD
-                )
                 .build()
         )
     }
 }
 ```
 
-Place your `.p12` file in `res/raw/`. Store the password in `BuildConfig` via `local.properties` or CI secrets.
+The SDK handles mTLS authentication internally - no certificate configuration needed.
 
 ### 2. Launch eSIM flow
 
 ```kotlin
 import com.gate2.sdk.esim.Gate2Esim
 import com.gate2.sdk.esim.EsimCallbacks
+import com.gate2.sdk.esim.api.EsimError
+import com.gate2.sdk.esim.api.EsimErrorCode
 import java.util.UUID
 
 val sessionId = UUID.randomUUID().toString()
@@ -82,10 +81,14 @@ Gate2Esim.start(
     callbacks = EsimCallbacks(
         onComplete = { finish() },
         onCancel   = { finish() },
-        onFail     = { error -> showError(error) },
+        onFail     = { error: EsimError ->
+            // Structured error handling
+            handleError(error)
+        },
         onProcessPayment = { request ->
-            // Your app handles payment externally
+            // Store orderId and sessionId for resume after payment
             pendingOrderId = request.orderId
+            pendingSessionId = request.sessionId
             navigateToPaymentProvider(
                 orderId  = request.orderId,
                 amount   = request.amount,
@@ -97,17 +100,31 @@ Gate2Esim.start(
     email  = "user@example.com",
     language = "en"
 )
+
+private fun handleError(error: EsimError) {
+    // Log for analytics
+    Log.e("eSIM", "Error: code=${error.code.name}, message=${error.message}")
+
+    // Handle specific error codes
+    when (error.code) {
+        EsimErrorCode.NETWORK_ERROR -> {
+            if (error.isRetryable) showRetryDialog()
+        }
+        EsimErrorCode.UNAUTHORIZED -> navigateToLogin()
+        else -> showError(error.message)
+    }
+}
 ```
 
 ### 3. After payment — resume flow
 
 ```kotlin
 fun onPaymentSuccess() {
-    Gate2TravelSdk.notifyPaymentResult(orderId = pendingOrderId!!)
-
+    // Resume flow with both orderId and sessionId
     Gate2Esim.resumeAfterPayment(
-        activity = this,
-        orderId = pendingOrderId!!,
+        activity  = this,
+        orderId   = pendingOrderId!!,
+        sessionId = sessionId,  // Same sessionId from start()
         callbacks = EsimCallbacks(
             onComplete = { finish() },
             onCancel   = { finish() },
@@ -116,6 +133,8 @@ fun onPaymentSuccess() {
     )
 }
 ```
+
+**Important:** Store both `orderId` (from `onProcessPayment`) and `sessionId` (from `start()`) when payment is initiated. Both are required for proper order confirmation.
 
 ### 4. Customization (optional)
 
@@ -138,8 +157,3 @@ Consumer rules are applied automatically. If you encounter issues:
 -keep class com.gate2.sdk.** { *; }
 -keepclassmembers class com.gate2.sdk.** { *; }
 ```
-
-## Support
-
-- Docs: [docs.gate2.travel](https://docs.gate2.travel)
-- Email: [support@gate2.travel](mailto:support@gate2.travel)
