@@ -21,7 +21,7 @@ You will also need:
 
 ```kotlin
 dependencies {
-    implementation("travel.gate2:esim:1.2.0")
+    implementation("travel.gate2:esim:1.0.3")
 }
 ```
 
@@ -157,3 +157,8 @@ Consumer rules are applied automatically. If you encounter issues:
 -keep class com.gate2.sdk.** { *; }
 -keepclassmembers class com.gate2.sdk.** { *; }
 ```
+
+## Support
+
+- Docs: [docs.gate2.travel](https://docs.gate2.travel)
+- Email: [support@gate2.travel](mailto:support@gate2.travel)
