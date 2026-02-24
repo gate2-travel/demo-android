@@ -2,34 +2,69 @@
 
 # Gate2 eSIM SDK
 
-### Complete eSIM Data Plan Solution for Android
+### eSIM Data Plan Integration for Android
 
-[![SDK Version](https://img.shields.io/badge/SDK-1.0.5-blue.svg)](https://central.sonatype.com/search?q=travel.gate2)
+[![SDK Version](https://img.shields.io/badge/SDK-1.0.6-blue.svg)](https://github.com/gate2-travel/demo-android)
 [![Platform](https://img.shields.io/badge/Platform-Android-green.svg)](https://developer.android.com)
 [![Min SDK](https://img.shields.io/badge/minSdk-27-orange.svg)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.2.21-purple.svg)](https://kotlinlang.org)
 [![Compose](https://img.shields.io/badge/Jetpack%20Compose-BOM%202025.12-teal.svg)](https://developer.android.com/jetpack/compose)
 
-**Integrate complete eSIM purchasing into your Android app with just 10 lines of code.**
+**Integrate complete eSIM data plan purchasing into your Android app.**
 
 </div>
 
 ---
 
-## Overview
+> **Document Version**: 1.0.6
+> **Last Updated**: February 25, 2026
+> **Compatibility**: Android 8.1+ (API 27+)
 
-The **Gate2 eSIM SDK** is a comprehensive, production-ready Android library that enables host applications to integrate complete eSIM data plan purchasing functionality with minimal effort. The SDK handles the entire purchase flow from plan browsing to eSIM activation.
+---
+
+## Table of Contents
+
+- [1. Overview](#1-overview)
+- [2. Quick Start](#2-quick-start)
+- [3. Purchase Flow](#3-purchase-flow)
+- [4. API Reference](#4-api-reference)
+  - [4.1 Gate2Esim Methods](#41-gate2esim-methods)
+  - [4.2 EsimCallbacks](#42-esimcallbacks)
+  - [4.3 EsimPaymentRequest](#43-esimpaymentrequest)
+  - [4.4 EsimError & EsimErrorCode](#44-esimerror--esimerrorcode)
+  - [4.5 EsimInstallationResult](#45-esiminstallationresult)
+  - [4.6 EsimProductSummary](#46-esimproductsummary)
+  - [4.7 EsimException](#47-esimexception)
+- [5. Sample Code](#5-sample-code)
+- [6. My eSIMs](#6-my-esims)
+- [7. Device eSIM Check](#7-device-esim-check)
+- [8. Error Handling](#8-error-handling)
+- [9. Theming & Branding](#9-theming--branding)
+- [10. System Requirements](#10-system-requirements)
+- [11. Troubleshooting](#11-troubleshooting)
+- [12. Support](#12-support)
+- [Changelog](#changelog)
+
+---
+
+## 1. Overview
+
+### What is Gate2 eSIM SDK?
+
+The **Gate2 eSIM SDK** (v1.0.6) is a production-ready Android library that enables host applications to integrate complete eSIM data plan purchasing with minimal effort. The SDK handles the entire flow from destination browsing to eSIM activation, plus a "My eSIMs" management screen.
 
 ### Key Capabilities
 
 | Capability | Description |
 |:-----------|:------------|
 | **Plan Search** | Browse data plans by destination, duration, and data allowance |
-| **Real-time Pricing** | Get accurate, up-to-date pricing with plan details |
-| **Coverage Maps** | View network coverage for selected destinations |
-| **Secure Payments** | PCI-compliant payment collection with flexible integration options |
-| **eSIM Activation** | QR code and direct installation support |
-| **Custom Theming** | Full brand customization with 20+ color properties |
+| **Real-time Pricing** | Accurate, up-to-date pricing with plan details |
+| **External Payments** | Host app processes payment, then resumes the SDK flow |
+| **eSIM Activation** | QR code and direct device installation (Android 9+) |
+| **My eSIMs** | View and manage previously purchased eSIMs |
+| **Top-Up** | Add data to existing eSIMs |
+| **Custom Theming** | Accent color and custom font support |
+| **Localization** | English, Azerbaijani, Russian |
 
 ### Integration at a Glance
 
@@ -38,55 +73,55 @@ The **Gate2 eSIM SDK** is a comprehensive, production-ready Android library that
 │                      YOUR APPLICATION                           │
 ├─────────────────────────────────────────────────────────────────┤
 │  ┌───────────────┐    ┌──────────────────────────────────────┐ │
-│  │  Initialize   │───▶│         Gate2EsimScreen              │ │
+│  │  Initialize   │───▶│         Gate2Esim.start()            │ │
 │  │  (1 method)   │    │  ┌────────────────────────────────┐  │ │
 │  └───────────────┘    │  │  Complete Purchase Flow        │  │ │
 │                       │  │  • Destination Selection       │  │ │
 │  ┌───────────────┐    │  │  • Plan Browsing               │  │ │
-│  │   Callbacks   │◀───│  │  • Payment Processing          │  │ │
+│  │  EsimCallbacks│◀───│  │  • Payment Processing          │  │ │
 │  │  • onComplete │    │  │  • eSIM Activation             │  │ │
 │  │  • onCancel   │    │  │  • Installation Guide          │  │ │
 │  │  • onFail     │    │  └────────────────────────────────┘  │ │
 │  │  • onPayment  │    └──────────────────────────────────────┘ │
+│  │  • onInstalled│                                              │
 │  └───────────────┘                                              │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-### Integration Complexity
+### API Surface
 
-| Aspect | Rating | Notes |
-|:-------|:------:|:------|
-| **Lines of Code** | ~10-20 | Minimal integration required |
-| **API Surface** | 2 methods | `initialize()` + `Gate2EsimScreen()` |
-| **Configuration** | Simple | Builder pattern with sensible defaults |
-| **Theming** | Optional | Works out-of-the-box with defaults |
-| **Time to Integrate** | < 1 hour | From setup to first purchase |
+| Method | Description |
+|:-------|:------------|
+| `Gate2Esim.start()` | Launch the eSIM purchase flow |
+| `Gate2Esim.resumeAfterPayment()` | Resume after external payment |
+| `Gate2Esim.showMyEsims()` | Show purchased eSIMs list |
+| `Gate2Esim.isAvailable()` | Check if eSIM module is accessible |
+| `Gate2Esim.isDeviceEsimCapable()` | Check device eSIM hardware support |
 
 ### Responsibilities Matrix
 
 | SDK Handles | Host App Handles |
 |:------------|:-----------------|
 | Plan browsing UI and logic | SDK initialization with API key |
-| Real-time pricing display | Implement callback handlers |
-| Coverage map display | Optional: Custom theming |
-| Payment collection UI | Optional: Payment processing |
-| eSIM activation & QR code | Navigation after completion |
-| Network security & retries | Error display (message provided) |
-| State management | |
-| Localization support | |
+| Real-time pricing display | Implement `EsimCallbacks` (5 callbacks) |
+| eSIM activation & QR code | External payment processing |
+| My eSIMs management | Store `orderId` + `sessionId` during payment |
+| Network security (mTLS + cert pinning) | Call `resumeAfterPayment()` after payment |
+| State management | Navigation after completion |
+| Localization (en, az, ru) | Optional: Custom accent color and font |
 
 ---
 
-## Quick Start
+## 2. Quick Start
 
 > **Time to Complete**: 5 minutes
 
-### Step 1: Add Dependencies
+### Step 1: Add Dependency
 
 ```kotlin
 // app/build.gradle.kts
 dependencies {
-    implementation("travel.gate2:esim:1.0.5")
+    implementation("travel.gate2:esim:1.0.6")
 }
 ```
 
@@ -103,54 +138,73 @@ class MyApplication : Application() {
         Gate2TravelSdk.initialize(
             Gate2SdkConfig.builder()
                 .context(this)
-                .apiKey(BuildConfig.API_KEY)
-                .enableLogging(BuildConfig.DEBUG)
+                .apiKey("your-api-key-here")
                 .build()
         )
     }
 }
 ```
 
-> **Note:** The client certificate for mTLS is embedded within the SDK and configured automatically. No certificate management is required.
+> **Note**: The eSIM SDK includes an embedded mTLS client certificate for secure API communication. No additional certificate configuration is needed.
 
-### Step 3: Add the eSIM Screen
+### Step 3: Launch the eSIM Flow
 
 ```kotlin
-import com.gate2.sdk.esim.Gate2EsimScreen
-import com.gate2.sdk.core.ui.theme.Gate2TravelTheme
+import com.gate2.sdk.esim.Gate2Esim
+import com.gate2.sdk.esim.EsimCallbacks
+import com.gate2.sdk.esim.api.EsimPaymentRequest
 
 class EsimActivity : ComponentActivity() {
+
+    // Store these during onProcessPayment for resumeAfterPayment()
+    private var pendingOrderId: String? = null
+    private var pendingSessionId: String? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        setContent {
-            Gate2TravelTheme {
-                Gate2EsimScreen(
-                    onComplete = {
-                        // Purchase successful - navigate to success screen
-                        finish()
-                    },
-                    onCancel = {
-                        // User cancelled - return to previous screen
-                        finish()
-                    },
-                    onFail = { errorMessage ->
-                        // Error occurred - show error to user
-                        Toast.makeText(this, errorMessage, Toast.LENGTH_LONG).show()
-                    },
-                    onProcessPayment = { paymentRequest ->
-                        // Optional: Handle payment in your app
-                        processPayment(paymentRequest)
+        Gate2Esim.start(
+            activity = this,
+            sessionId = "your-session-id",
+            callbacks = EsimCallbacks(
+                onComplete = {
+                    // Purchase successful
+                    finish()
+                },
+                onCancel = {
+                    // User cancelled
+                    finish()
+                },
+                onFail = { error ->
+                    // Structured error — see Section 8
+                    showError(error.message)
+                },
+                onProcessPayment = { paymentRequest ->
+                    // Store for resumeAfterPayment()
+                    pendingOrderId = paymentRequest.orderId
+                    pendingSessionId = paymentRequest.sessionId
+                    processPayment(paymentRequest)
+                },
+                onEsimInstalled = { result ->
+                    // Optional: eSIM installation result
+                    if (result.success) {
+                        Log.d("eSIM", "Installed for order ${result.orderId}")
                     }
-                )
-            }
-        }
+                }
+            ),
+            userId = "user-123",     // Optional
+            language = "en"          // Default "en"
+        )
     }
 
     private fun processPayment(request: EsimPaymentRequest) {
-        // Your payment processing logic
-        // Store request.orderId and request.sessionId
-        // Call Gate2Esim.resumeAfterPayment(orderId, sessionId) after payment
+        // Process with your payment provider, then:
+        Gate2Esim.resumeAfterPayment(
+            activity = this,
+            orderId = pendingOrderId!!,
+            sessionId = pendingSessionId!!,
+            callbacks = callbacks // same callbacks
+        )
     }
 }
 ```
@@ -161,7 +215,7 @@ Your app now has complete eSIM purchasing functionality.
 
 ---
 
-## Purchase Flow
+## 3. Purchase Flow
 
 The SDK implements a complete **5-screen purchase flow**:
 
@@ -200,162 +254,359 @@ The SDK implements a complete **5-screen purchase flow**:
 - Fair usage policy
 
 #### 4. Payment
-- Card information collection
-- PCI-compliant processing
-- Secure transmission
+- SDK calls `onProcessPayment` with `EsimPaymentRequest`
+- Host app processes payment externally
+- Host app calls `Gate2Esim.resumeAfterPayment()` to continue
 
 #### 5. Activation
 - QR code for installation
-- Manual activation code
+- Direct install option (Android 9+)
 - Step-by-step guide
-- Direct install option
 
 ---
 
-## Configuration Options
+## 4. API Reference
 
-| Parameter | Required | Description |
-|-----------|----------|-------------|
-| `context` | Yes | Application or Activity context |
-| `apiKey` | Yes | Your Gate2 API key |
-| `enableLogging` | No | Enable debug logging (default: false) |
-| `theme` | No | Custom theme configuration |
+### 4.1 Gate2Esim Methods
 
-> **mTLS Security:** The client certificate is embedded within the SDK and configured automatically. No certificate management is required by the host app.
+#### `start()`
 
----
-
-## API Models
-
-### EsimPaymentRequest
+Launch the eSIM browsing and purchasing flow.
 
 ```kotlin
-data class EsimPaymentRequest(
-    val orderId: String,           // Unique order identifier
-    val sessionId: String,         // Session ID from SDK config
-    val userId: String,            // User ID from SDK config
-    val productId: String,         // Selected eSIM product ID
-    val productName: String,       // Product display name
-    val amount: Double,            // Payment amount
-    val currency: String,          // ISO 4217 currency code (e.g., "USD")
-    val dataLimit: String,         // Data allowance description
-    val validityDays: Int,         // Plan validity in days
-    val coverage: List<String>,    // Countries covered
-    val isTopUp: Boolean,          // Whether this is a top-up purchase
-    val iccid: String?             // eSIM ICCID (for top-ups)
+fun start(
+    activity: Activity,
+    sessionId: String,                          // Required — backend correlation
+    callbacks: EsimCallbacks,                   // Required — flow outcome handlers
+    userId: String? = null,                     // Optional — order tracking
+    language: String = "en",                    // Optional — UI language
+    accentColor: Int = 0xFF1B63ED.toInt(),      // Optional — brand color (ARGB)
+    fontResId: Int = 0,                         // Optional — @FontRes (0 = default Inter)
+    title: String = "eSIM"                      // Optional — toolbar title
+)
+```
+
+**Throws**: Calls `onFail` if SDK is not initialized, session ID is blank, or module access is denied.
+
+---
+
+#### `resumeAfterPayment()`
+
+Resume the eSIM flow after external payment processing.
+
+```kotlin
+fun resumeAfterPayment(
+    activity: Activity,
+    orderId: String,                            // Required — from EsimPaymentRequest.orderId
+    sessionId: String,                          // Required — from EsimPaymentRequest.sessionId
+    callbacks: EsimCallbacks,                   // Required — flow outcome handlers
+    language: String = "en"                     // Optional — UI language
+)
+```
+
+**Throws**: Calls `onFail` if SDK is not initialized, orderId/sessionId is blank or invalid, or module access is denied.
+
+**Validation**: `orderId` must be alphanumeric with hyphens/underscores, max 100 characters.
+
+---
+
+#### `showMyEsims()`
+
+Show the My eSIMs management screen.
+
+```kotlin
+fun showMyEsims(
+    activity: Activity,
+    sessionId: String,                          // Required
+    callbacks: EsimCallbacks,                   // Required
+    userId: String,                             // Required
+    language: String = "en",                    // Optional
+    accentColor: Int = 0xFF1B63ED.toInt(),      // Optional
+    fontResId: Int = 0,                         // Optional
+    title: String = "eSIM"                      // Optional
 )
 ```
 
 ---
 
-## External Payment Integration
+#### `isAvailable()`
 
-For apps using external payment providers, use the `onProcessPayment` callback:
+Check if the eSIM module is available (SDK initialized + token grants access).
 
 ```kotlin
-import com.gate2.sdk.esim.Gate2EsimScreen
-import com.gate2.sdk.esim.Gate2EsimResumeScreen
-import com.gate2.sdk.esim.api.EsimPaymentRequest
+fun isAvailable(): Boolean
+```
 
-@Composable
-fun MyEsimScreen() {
-    var pendingPayment by remember { mutableStateOf<EsimPaymentRequest?>(null) }
-    var showResumeScreen by remember { mutableStateOf(false) }
+---
 
-    if (showResumeScreen && pendingPayment != null) {
-        // Step 3: Resume flow after payment
-        Gate2EsimResumeScreen(
-            orderId = pendingPayment!!.orderId,
-            onComplete = {
-                pendingPayment = null
-                showResumeScreen = false
-            },
-            onCancel = {
-                pendingPayment = null
-                showResumeScreen = false
-            },
-            onFail = { error ->
-                pendingPayment = null
-                showResumeScreen = false
-            }
-        )
-    } else {
-        Gate2EsimScreen(
-            onComplete = { /* Direct flow completed */ },
-            onCancel = { /* User cancelled */ },
-            onFail = { error -> /* Handle error */ },
-            onProcessPayment = { paymentRequest ->
-                // Step 1: Store orderId and sessionId for resume
-                pendingPayment = paymentRequest
+#### `isDeviceEsimCapable()`
 
-                // Step 2: Navigate to your payment provider
-                navigateToPayment(
-                    orderId   = paymentRequest.orderId,
-                    sessionId = paymentRequest.sessionId,
-                    amount    = paymentRequest.amount,
-                    currency  = paymentRequest.currency
-                )
-            }
+Check if the device supports eSIM hardware.
+
+```kotlin
+fun isDeviceEsimCapable(context: Context): Boolean
+```
+
+Returns `false` on Android 8.1 and below (API < 28).
+
+---
+
+### 4.2 EsimCallbacks
+
+```kotlin
+data class EsimCallbacks(
+    val onComplete: () -> Unit,                             // Purchase completed successfully
+    val onCancel: () -> Unit,                               // User cancelled the flow
+    val onFail: (EsimError) -> Unit,                        // Error occurred (structured)
+    val onProcessPayment: (EsimPaymentRequest) -> Unit,     // Payment processing required
+    val onEsimInstalled: (EsimInstallationResult) -> Unit = {} // eSIM installation result (optional)
+)
+```
+
+**Backward compatibility**: Existing code using `(String) -> Unit` for `onFail` still works:
+
+```kotlin
+// String-based error handling (backward compatible)
+EsimCallbacks(
+    onComplete = { /* ... */ },
+    onCancel = { /* ... */ },
+    onFail = { message: String -> showError(message) },
+    onProcessPayment = { request -> handlePayment(request) }
+)
+```
+
+Or use the factory method:
+
+```kotlin
+EsimCallbacks.withStringError(
+    onComplete = { /* ... */ },
+    onCancel = { /* ... */ },
+    onFailMessage = { message -> showError(message) },
+    onProcessPayment = { request -> handlePayment(request) }
+)
+```
+
+---
+
+### 4.3 EsimPaymentRequest
+
+Received via `onProcessPayment` when the user confirms a plan purchase.
+
+```kotlin
+data class EsimPaymentRequest(
+    val orderId: String,          // Unique order ID — STORE for resumeAfterPayment()
+    val sessionId: String,        // Session ID — STORE for resumeAfterPayment()
+    val userId: String,           // User ID from SDK configuration
+    val productId: String,        // The eSIM product ID
+    val productName: String,      // Name of the eSIM product
+    val amount: Double,           // Total amount to charge
+    val currency: String,         // ISO 4217 currency code (e.g., "USD", "EUR")
+    val dataLimit: String,        // Data allowance (e.g., "5GB", "Unlimited")
+    val validityDays: Int,        // Validity period in days
+    val coverage: List<String>,   // List of covered countries/regions
+    val isTopUp: Boolean,         // Whether this is a top-up order
+    val iccid: String?            // ICCID for top-up orders (null for new purchases)
+)
+```
+
+> **Important**: You **must** store both `orderId` and `sessionId` from this request. They are required parameters when calling `resumeAfterPayment()`.
+
+---
+
+### 4.4 EsimError & EsimErrorCode
+
+#### EsimError
+
+```kotlin
+data class EsimError(
+    val code: EsimErrorCode,      // Error category for programmatic handling
+    val message: String,          // Human-readable message safe to display
+    val cause: Throwable?,        // Underlying exception (optional, for debugging)
+    val isRetryable: Boolean,     // Whether retry might resolve the error
+    val httpStatusCode: Int?      // HTTP status code for HTTP errors (optional)
+)
+```
+
+#### EsimErrorCode
+
+| Code | Category | Description |
+|------|----------|-------------|
+| `SDK_NOT_INITIALIZED` | SDK State | Call `Gate2TravelSdk.initialize()` first |
+| `MODULE_ACCESS_DENIED` | SDK State | Token doesn't grant eSIM permission |
+| `DEVICE_NOT_SUPPORTED` | SDK State | No EuiccManager or not enabled |
+| `INVALID_SESSION_ID` | Validation | Session ID is blank or invalid |
+| `INVALID_ORDER_ID` | Validation | Order ID is blank, too long, or invalid chars |
+| `INVALID_USER_ID` | Validation | User ID required but not provided |
+| `VALIDATION_ERROR` | Validation | General parameter validation error |
+| `NETWORK_ERROR` | Network | No internet, timeout (usually retryable) |
+| `UNAUTHORIZED` | HTTP | 401 — check API key |
+| `FORBIDDEN` | HTTP | 403 — access denied |
+| `NOT_FOUND` | HTTP | 404 — e.g., invalid order ID |
+| `RATE_LIMITED` | HTTP | 429 — try again later |
+| `SERVER_ERROR` | HTTP | 5xx (usually retryable) |
+| `NO_PRODUCT_SELECTED` | Business | No product selected for order |
+| `ORDER_CREATION_FAILED` | Business | Order creation failed |
+| `PAYMENT_FAILED` | Business | Payment processing failed |
+| `ORDER_CONFIRMATION_FAILED` | Business | Order confirmation failed |
+| `ESIM_INSTALLATION_FAILED` | Installation | Installation failed on device |
+| `ESIM_EUICC_DISABLED` | Installation | eSIM hardware disabled in settings |
+| `PARSE_ERROR` | Other | Failed to parse API response |
+| `UNKNOWN` | Other | Unexpected error |
+
+---
+
+### 4.5 EsimInstallationResult
+
+Received via `onEsimInstalled` callback after a device installation attempt.
+
+```kotlin
+data class EsimInstallationResult(
+    val success: Boolean,         // Whether the eSIM was installed
+    val orderId: String?,         // Associated order ID
+    val errorMessage: String?,    // Error details if failed (null on success)
+    val status: Status            // Detailed status enum
+) {
+    enum class Status {
+        INSTALLED,                // eSIM installed successfully
+        NOT_SUPPORTED,            // Device doesn't support eSIM (API < 28)
+        EUICC_DISABLED,           // eSIM hardware disabled in settings
+        USER_CANCELLED,           // User dismissed system consent dialog
+        FAILED                    // Installation failed (see errorMessage)
+    }
+}
+```
+
+---
+
+### 4.6 EsimProductSummary
+
+```kotlin
+data class EsimProductSummary(
+    val productName: String,      // Name of the eSIM product
+    val dataLimit: String,        // Data allowance
+    val validityDays: Int,        // Validity period in days
+    val coverageCount: Int        // Number of countries covered
+)
+```
+
+---
+
+### 4.7 EsimException
+
+Exception wrapper for `EsimError`, useful for try/catch patterns.
+
+```kotlin
+class EsimException(val error: EsimError) : Exception(error.message, error.cause) {
+    val code: EsimErrorCode           // Delegates to error.code
+    val isRetryable: Boolean          // Delegates to error.isRetryable
+    val httpStatusCode: Int?          // Delegates to error.httpStatusCode
+}
+```
+
+---
+
+## 5. Sample Code
+
+### Complete Integration with Payment Resume
+
+```kotlin
+// Application.kt
+class MyApp : Application() {
+    override fun onCreate() {
+        super.onCreate()
+        Gate2TravelSdk.initialize(
+            Gate2SdkConfig.builder()
+                .context(this)
+                .apiKey(BuildConfig.GATE2_API_KEY)
+                .build()
         )
     }
 }
 
-// After payment completes (in your payment callback):
-fun onPaymentComplete(orderId: String, sessionId: String) {
-    // Resume the eSIM flow to show confirmation
-    Gate2Esim.resumeAfterPayment(
-        activity  = this,
-        orderId   = orderId,
-        sessionId = sessionId,
-        callbacks = EsimCallbacks(
-            onComplete = { finish() },
-            onCancel   = { finish() },
-            onFail     = { error -> showError(error) }
+// EsimActivity.kt
+class EsimActivity : ComponentActivity() {
+
+    private var pendingOrderId: String? = null
+    private var pendingSessionId: String? = null
+
+    private val callbacks by lazy {
+        EsimCallbacks(
+            onComplete = {
+                Toast.makeText(this, "eSIM activated!", Toast.LENGTH_SHORT).show()
+                finish()
+            },
+            onCancel = {
+                finish()
+            },
+            onFail = { error ->
+                when (error.code) {
+                    EsimErrorCode.NETWORK_ERROR -> {
+                        if (error.isRetryable) showRetryDialog()
+                        else showError(error.message)
+                    }
+                    EsimErrorCode.UNAUTHORIZED -> {
+                        showError("Authentication failed. Check your API key.")
+                    }
+                    else -> showError(error.message)
+                }
+            },
+            onProcessPayment = { request ->
+                // Store both values for resumeAfterPayment()
+                pendingOrderId = request.orderId
+                pendingSessionId = request.sessionId
+                handlePayment(request)
+            },
+            onEsimInstalled = { result ->
+                when (result.status) {
+                    EsimInstallationResult.Status.INSTALLED ->
+                        Log.d("eSIM", "Successfully installed for order ${result.orderId}")
+                    EsimInstallationResult.Status.USER_CANCELLED ->
+                        Log.d("eSIM", "User cancelled installation dialog")
+                    else ->
+                        Log.w("eSIM", "Installation failed: ${result.errorMessage}")
+                }
+            }
         )
-    )
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        Gate2Esim.start(
+            activity = this,
+            sessionId = "your-session-id",
+            callbacks = callbacks,
+            userId = "user-123",
+            language = "en",
+            accentColor = 0xFF1B63ED.toInt(),
+            title = "eSIM"
+        )
+    }
+
+    private fun handlePayment(request: EsimPaymentRequest) {
+        // Process with your payment provider
+        yourPaymentProvider.charge(request.amount, request.currency) { result ->
+            when (result) {
+                is Success -> {
+                    // Resume SDK flow after successful payment
+                    Gate2Esim.resumeAfterPayment(
+                        activity = this,
+                        orderId = pendingOrderId!!,
+                        sessionId = pendingSessionId!!,
+                        callbacks = callbacks,
+                        language = "en"
+                    )
+                }
+                is Failed -> {
+                    showError("Payment failed: ${result.error}")
+                }
+            }
+        }
+    }
 }
 ```
 
----
-
-## Theming & Branding
-
-### Quick Theming
-
-For simple brand color customization:
-
-```kotlin
-Gate2TravelSdk.initialize(
-    Gate2SdkConfig.builder()
-        .context(this)
-        .apiKey(BuildConfig.API_KEY)
-        .theme(
-            Gate2Theme.builder()
-                .primaryColors(
-                    PrimaryColors.builder()
-                        .main(0xFF1A73E8.toInt())      // Primary brand color
-                        .onMain(0xFFFFFFFF.toInt())   // Text on primary
-                        .build()
-                )
-                .build()
-        )
-        .build()
-)
-```
-
-### Update Theme at Runtime
-
-```kotlin
-Gate2TravelSdk.updateTheme(
-    Gate2Theme.builder()
-        .primaryColors(PrimaryColors.builder().main(0xFF6366F1.toInt()).build())
-        .build()
-)
-```
-
----
-
-## Supported Destinations
+### Supported Destinations
 
 The SDK supports eSIM data plans for **190+ countries and regions**:
 
@@ -369,238 +620,40 @@ The SDK supports eSIM data plans for **190+ countries and regions**:
 
 ---
 
-## Sample Code
+## 6. My eSIMs
 
-### Complete Example (MainActivity.kt)
-
-This is a complete working implementation from the demo app:
-
-```kotlin
-package com.gate2.travel
-
-import android.os.Bundle
-import android.widget.Toast
-import androidx.activity.ComponentActivity
-import com.gate2.sdk.core.Gate2TravelSdk
-import com.gate2.sdk.core.config.Gate2SdkConfig
-import com.gate2.sdk.esim.EsimCallbacks
-import com.gate2.sdk.esim.Gate2Esim
-import com.gate2.sdk.esim.api.EsimError
-import com.gate2.sdk.esim.api.EsimErrorCode
-import java.util.UUID
-
-class MainActivity : ComponentActivity() {
-
-    companion object {
-        private const val KEY_SESSION_ID = "session_id"
-        private const val KEY_PENDING_ORDER_ID = "pending_order_id"
-
-        // Demo user ID - in production, get this from your auth system
-        private const val DEMO_USER_ID = "9900923232922"
-    }
-
-    // Session state - survives configuration changes
-    private lateinit var sessionId: String
-    private var pendingOrderId: String? = null
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-
-        // Restore or create session state
-        sessionId = savedInstanceState?.getString(KEY_SESSION_ID)
-            ?: UUID.randomUUID().toString()
-        pendingOrderId = savedInstanceState?.getString(KEY_PENDING_ORDER_ID)
-
-        // Initialize SDK (app-level config only)
-        initializeSdk()
-
-        // Launch eSIM flow
-        launchEsimFlow()
-    }
-
-    override fun onSaveInstanceState(outState: Bundle) {
-        super.onSaveInstanceState(outState)
-        outState.putString(KEY_SESSION_ID, sessionId)
-        pendingOrderId?.let { outState.putString(KEY_PENDING_ORDER_ID, it) }
-    }
-
-    /**
-     * Initialize SDK with app-level configuration.
-     * Note: Client certificate for mTLS is handled internally by the SDK.
-     */
-    private fun initializeSdk() {
-        if (Gate2TravelSdk.isInitialized()) return
-
-        Gate2TravelSdk.initialize(
-            Gate2SdkConfig.builder()
-                .context(this)
-                .apiKey(BuildConfig.API_KEY)
-                .enableLogging(true)
-                .enableCertificatePinning(true)
-                .build()
-        )
-    }
-
-    /**
-     * Launch the eSIM browsing and purchasing flow.
-     */
-    private fun launchEsimFlow() {
-        Gate2Esim.start(
-            title = "ABB eSIM",
-            activity = this,
-            sessionId = sessionId,
-            callbacks = createCallbacks(),
-            userId = DEMO_USER_ID,
-            language = "az"
-        )
-    }
-
-    /**
-     * Create callbacks for the eSIM flow with structured error handling.
-     */
-    private fun createCallbacks() = EsimCallbacks(
-        onComplete = {
-            showToast("eSIM order completed! Check your email for activation details.")
-            finish()
-        },
-        onCancel = {
-            showToast("eSIM purchase cancelled")
-            finish()
-        },
-        onFail = { error: EsimError ->
-            handleError(error)
-        },
-        onProcessPayment = { paymentRequest ->
-            // Store orderId for payment flow
-            pendingOrderId = paymentRequest.orderId
-
-            showToast(
-                "Order created: ${paymentRequest.orderId}\n" +
-                    "Amount: ${paymentRequest.amount} ${paymentRequest.currency}\n" +
-                    "Redirecting to payment..."
-            )
-
-            // In production:
-            // 1. Store orderId and sessionId
-            // 2. Navigate to your payment provider (Stripe, PayPal, etc.)
-            // 3. After payment completes, call Gate2Esim.resumeAfterPayment()
-
-            // Demo: simulate immediate payment completion
-            handlePaymentComplete()
-        }
-    )
-
-    /**
-     * Handle errors with structured error information.
-     */
-    private fun handleError(error: EsimError) {
-        // Log error for analytics
-        val logMessage = buildString {
-            append("Error: code=${error.code.name}")
-            append(", message=${error.message}")
-            error.httpStatusCode?.let { append(", httpStatus=$it") }
-            append(", retryable=${error.isRetryable}")
-        }
-        android.util.Log.e("eSIM", logMessage)
-
-        // Handle specific error codes
-        when (error.code) {
-            EsimErrorCode.NETWORK_ERROR -> {
-                if (error.isRetryable) {
-                    showToast("Network error. Please check your connection and try again.")
-                } else {
-                    showToast("Network error: ${error.message}")
-                }
-            }
-            EsimErrorCode.UNAUTHORIZED -> {
-                showToast("Authentication failed. Please check your API key.")
-            }
-            EsimErrorCode.MODULE_ACCESS_DENIED -> {
-                showToast("eSIM module not available with your subscription.")
-            }
-            EsimErrorCode.RATE_LIMITED -> {
-                showToast("Too many requests. Please try again later.")
-            }
-            EsimErrorCode.SERVER_ERROR -> {
-                if (error.isRetryable) {
-                    showToast("Server error. Please try again.")
-                } else {
-                    showToast("Server error: ${error.message}")
-                }
-            }
-            else -> {
-                showToast("Error: ${error.message}")
-            }
-        }
-    }
-
-    /**
-     * Handle payment completion and resume the eSIM flow.
-     */
-    private fun handlePaymentComplete() {
-        val orderId = pendingOrderId ?: return
-
-        Gate2Esim.resumeAfterPayment(
-            activity = this,
-            orderId = orderId,
-            sessionId = sessionId,
-            callbacks = EsimCallbacks(
-                onComplete = {
-                    showToast("eSIM activated! Check your email for details.")
-                    clearPaymentState()
-                    finish()
-                },
-                onCancel = {
-                    clearPaymentState()
-                    finish()
-                },
-                onFail = { error: EsimError ->
-                    val message = when (error.code) {
-                        EsimErrorCode.ORDER_CONFIRMATION_FAILED -> "Payment confirmation failed"
-                        EsimErrorCode.NOT_FOUND -> "Order not found"
-                        else -> "Payment failed"
-                    }
-                    showToast("$message: ${error.message}")
-                    clearPaymentState()
-                }
-            ),
-            language = "az"
-        )
-    }
-
-    private fun clearPaymentState() {
-        pendingOrderId = null
-    }
-
-    private fun showToast(message: String) {
-        Toast.makeText(this, message, Toast.LENGTH_LONG).show()
-    }
-}
-```
-
----
-
-## My eSIMs
-
-Display the list of purchased eSIMs with detail view:
+Display the list of purchased eSIMs for a user.
 
 ```kotlin
 Gate2Esim.showMyEsims(
-    activity  = this,
+    activity = this,
     sessionId = sessionId,
     callbacks = EsimCallbacks(
         onComplete = { finish() },
-        onCancel   = { finish() },
-        onFail     = { error -> showError(error.message) }
+        onCancel = { finish() },
+        onFail = { error -> showError(error.message) },
+        onProcessPayment = { request ->
+            // Handle top-up payments (request.isTopUp == true)
+            pendingOrderId = request.orderId
+            pendingSessionId = request.sessionId
+            handlePayment(request)
+        },
+        onEsimInstalled = { result ->
+            if (result.success) {
+                Toast.makeText(this, "eSIM activated!", Toast.LENGTH_SHORT).show()
+            }
+        }
     ),
-    userId   = "user-123",
+    userId = "user-123",
     language = "en"
 )
 ```
 
+> **Note**: The My eSIMs screen supports top-up purchases. The `onProcessPayment` callback will fire with `isTopUp = true` and the existing `iccid` when the user tops up an existing eSIM.
+
 ---
 
-## Device eSIM Check
+## 7. Device eSIM Check
 
 Check if the device supports eSIM before showing eSIM features:
 
@@ -612,16 +665,111 @@ if (Gate2Esim.isDeviceEsimCapable(context)) {
 }
 ```
 
-> **Note:** Returns `false` on devices running Android 8.1 or below (API < 28) where `EuiccManager` is not available.
+> Returns `false` on devices running Android 8.1 or below (API < 28) where `EuiccManager` is not available.
+
+### Module Availability Check
+
+```kotlin
+if (Gate2Esim.isAvailable()) {
+    // SDK is initialized AND eSIM module access is granted by token
+    showEsimButton()
+}
+```
 
 ---
 
-## System Requirements
+## 8. Error Handling
+
+### Structured Errors
+
+The `onFail` callback receives an `EsimError` object with structured information:
+
+```kotlin
+onFail = { error ->
+    when (error.code) {
+        EsimErrorCode.NETWORK_ERROR -> {
+            if (error.isRetryable) showRetryDialog()
+            else showError(error.message)
+        }
+        EsimErrorCode.UNAUTHORIZED -> navigateToLogin()
+        EsimErrorCode.RATE_LIMITED -> showError("Too many requests. Please wait.")
+        EsimErrorCode.SERVER_ERROR -> {
+            if (error.isRetryable) showRetryDialog()
+        }
+        else -> showError(error.message)
+    }
+
+    // Log for analytics
+    analytics.logError(
+        code = error.code.name,
+        statusCode = error.httpStatusCode,
+        message = error.message,
+        retryable = error.isRetryable
+    )
+}
+```
+
+### Backward Compatibility
+
+Existing integrations using `(String) -> Unit` for `onFail` continue to work:
+
+```kotlin
+EsimCallbacks(
+    onComplete = { /* ... */ },
+    onCancel = { /* ... */ },
+    onFail = { message: String -> showError(message) },
+    onProcessPayment = { request -> handlePayment(request) }
+)
+```
+
+### Common Error Scenarios
+
+| Error Code | Typical Cause | Recommended Action |
+|------------|--------------|-------------------|
+| `NETWORK_ERROR` | No internet / timeout | Show retry option |
+| `UNAUTHORIZED` | Invalid API key | Check configuration |
+| `MODULE_ACCESS_DENIED` | Token missing eSIM permission | Contact Gate2 support |
+| `INVALID_SESSION_ID` | Blank session ID passed | Fix caller code |
+| `INVALID_ORDER_ID` | Malformed order ID | Fix caller code |
+| `SERVER_ERROR` | Backend issue | Show retry option |
+| `ESIM_INSTALLATION_FAILED` | Device installation error | Show manual QR option |
+| `ESIM_EUICC_DISABLED` | eSIM hardware off | Prompt user to enable |
+
+---
+
+## 9. Theming & Branding
+
+The eSIM SDK supports accent color and custom font customization through `Gate2Esim.start()` and `Gate2Esim.showMyEsims()` parameters:
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `accentColor` | `Int` (ARGB) | `0xFF1B63ED` (blue) | Brand accent color for buttons, highlights |
+| `fontResId` | `Int` (`@FontRes`) | `0` (Inter) | Custom font resource ID |
+| `title` | `String` | `"eSIM"` | Toolbar title |
+
+### Example
+
+```kotlin
+Gate2Esim.start(
+    activity = this,
+    sessionId = sessionId,
+    callbacks = callbacks,
+    accentColor = 0xFF6200EE.toInt(),    // Purple brand
+    fontResId = R.font.my_custom_font,    // Custom font
+    title = "Data Plans"                  // Custom title
+)
+```
+
+---
+
+## 10. System Requirements
+
+### Minimum Requirements
 
 | Requirement | Version | Notes |
 |-------------|---------|-------|
 | **Android minSdk** | 27 | Android 8.1 Oreo |
-| **Android compileSdk** | 36 | Android 16 |
+| **Android compileSdk** | 35 | Android 15 |
 | **Kotlin** | 2.2.21 | Required for language features |
 | **Java** | 11 | JVM target |
 | **Jetpack Compose** | BOM 2025.12.00 | Material3 components |
@@ -630,161 +778,102 @@ if (Gate2Esim.isDeviceEsimCapable(context)) {
 
 | Feature | Requirement |
 |---------|-------------|
-| **Screen Size** | Phone and Tablet optimized |
-| **Orientation** | Portrait (primary), Landscape (supported) |
+| **eSIM Hardware** | Required for direct installation (Android 9+) |
+| **QR Code** | Works on all devices (user scans with Settings) |
 | **Network** | Internet connection required |
-| **eSIM Support** | Device must support eSIM for activation |
 | **Play Services** | Not required |
 
----
-
-## Error Handling
-
-### Structured Error API (v1.0.3+)
-
-The SDK provides structured error information via `EsimError`:
+### Gradle Setup
 
 ```kotlin
-import com.gate2.sdk.esim.api.EsimError
-import com.gate2.sdk.esim.api.EsimErrorCode
+// app/build.gradle.kts
+plugins {
+    id("com.android.application")
+    id("org.jetbrains.kotlin.android")
+    id("org.jetbrains.kotlin.plugin.compose")
+}
 
-onFail = { error: EsimError ->
-    // Programmatic handling based on error code
-    when (error.code) {
-        EsimErrorCode.NETWORK_ERROR -> {
-            if (error.isRetryable) showRetryDialog()
-        }
-        EsimErrorCode.UNAUTHORIZED -> navigateToLogin()
-        EsimErrorCode.RATE_LIMITED -> showToast("Too many requests. Try again later.")
-        else -> showError(error.message)
+android {
+    namespace = "com.yourcompany.app"
+    compileSdk = 35
+
+    defaultConfig {
+        minSdk = 27
+        targetSdk = 35
     }
 
-    // Log for analytics
-    analytics.logError(
-        code = error.code.name,
-        message = error.message,
-        httpStatus = error.httpStatusCode,
-        retryable = error.isRetryable
-    )
+    buildFeatures {
+        compose = true
+        buildConfig = true
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
+    }
+
+    kotlinOptions {
+        jvmTarget = "11"
+    }
+}
+
+dependencies {
+    // Gate2 eSIM SDK
+    implementation("travel.gate2:esim:1.0.6")
+
+    // AndroidX Core
+    implementation("androidx.core:core-ktx:1.17.0")
+    implementation("androidx.activity:activity-compose:1.12.1")
+
+    // Compose
+    implementation(platform("androidx.compose:compose-bom:2025.12.00"))
+    implementation("androidx.compose.ui:ui")
+    implementation("androidx.compose.material3:material3")
 }
 ```
 
-### EsimError Properties
-
-| Property | Type | Description |
-|----------|------|-------------|
-| `code` | `EsimErrorCode` | Error category for programmatic handling |
-| `message` | `String` | Human-readable message for display |
-| `isRetryable` | `Boolean` | Whether retry logic should be offered |
-| `httpStatusCode` | `Int?` | HTTP status code (for HTTP errors) |
-| `cause` | `Throwable?` | Underlying exception (for debugging) |
-
-### Error Codes
-
-| Code | Description | Retryable |
-|------|-------------|-----------|
-| `NETWORK_ERROR` | No internet, timeout | Yes |
-| `UNAUTHORIZED` | Invalid API key (401) | No |
-| `FORBIDDEN` | Access denied (403) | No |
-| `NOT_FOUND` | Resource not found (404) | No |
-| `RATE_LIMITED` | Too many requests (429) | Yes |
-| `SERVER_ERROR` | Server error (5xx) | Yes |
-| `SDK_NOT_INITIALIZED` | SDK not initialized | No |
-| `MODULE_ACCESS_DENIED` | eSIM module not in subscription | No |
-| `INVALID_SESSION_ID` | Session ID is blank | No |
-| `INVALID_ORDER_ID` | Order ID validation failed | No |
-| `PAYMENT_FAILED` | Payment processing failed | Depends |
-| `ORDER_CONFIRMATION_FAILED` | Order confirmation failed | Depends |
-
-### Backward Compatibility
-
-Existing code using `(String) -> Unit` for `onFail` continues to work:
+### Repository Configuration
 
 ```kotlin
-// Still works! The message is extracted automatically.
-onFail = { message: String -> showError(message) }
-```
-
-### Common Error Scenarios
-
-| Scenario | Error Code | Recommended Action |
-|----------|------------|-------------------|
-| No internet | `NETWORK_ERROR` | Show retry option |
-| Invalid API key | `UNAUTHORIZED` | Check configuration |
-| Plan unavailable | `NOT_FOUND` | Return to search |
-| Payment declined | `PAYMENT_FAILED` | Offer retry |
-| Server error | `SERVER_ERROR` | Show retry option |
-
-### Best Practice
-
-```kotlin
-onFail = { error: EsimError ->
-    if (BuildConfig.DEBUG) {
-        Log.e("Gate2SDK", "Error: ${error.code.name} - ${error.message}")
-    }
-
-    if (error.isRetryable) {
-        AlertDialog.Builder(context)
-            .setTitle("Error")
-            .setMessage(error.message)
-            .setPositiveButton("Try Again") { _, _ -> /* retry */ }
-            .setNegativeButton("Cancel") { _, _ -> finish() }
-            .show()
-    } else {
-        Toast.makeText(context, error.message, Toast.LENGTH_LONG).show()
+// settings.gradle.kts
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        google()
+        mavenCentral()
     }
 }
 ```
 
 ---
 
-## Troubleshooting
+## 11. Troubleshooting
 
 ### Quick Diagnostic Checklist
 
-- [ ] SDK initialized in `Application.onCreate()`
+- [ ] SDK initialized in `Application.onCreate()` via `Gate2TravelSdk.initialize()`
 - [ ] Valid API key configured
 - [ ] Internet connection available
-- [ ] Using `Gate2TravelTheme` wrapper
 - [ ] Compatible Android version (API 27+)
-- [ ] All required callbacks implemented
-
-### Debug Logging
-
-Enable SDK logging during development:
-
-```kotlin
-Gate2TravelSdk.initialize(
-    Gate2SdkConfig.builder()
-        .context(this)
-        .apiKey(BuildConfig.API_KEY)
-        .enableLogging(BuildConfig.DEBUG)  // Enable in debug builds
-        .build()
-)
-```
-
-Log tag: `Gate2-esim`
-
-Key log messages:
-| Message | Meaning |
-|---------|---------|
-| `SDK initialized (v1.0.5)` | Initialization successful |
-| `eSIM flow started` | `Gate2Esim.start()` called |
-| `Resuming eSIM flow after payment` | `resumeAfterPayment()` called |
-| `Confirming order: xxx` | Order confirmation in progress |
-| `Order confirmed successfully` | Payment verification complete |
-| `Order confirmation failed` | Check error details |
+- [ ] All required callbacks implemented in `EsimCallbacks`
+- [ ] Storing `orderId` and `sessionId` from `onProcessPayment`
+- [ ] Calling `resumeAfterPayment()` after payment completes
 
 ### Common Issues
 
 #### "SDK not initialized"
 
 ```kotlin
-// Ensure initialization before use
+// Ensure initialization in Application.onCreate()
 class MyApplication : Application() {
     override fun onCreate() {
         super.onCreate()
-        Gate2TravelSdk.initialize(/*...*/)
+        Gate2TravelSdk.initialize(
+            Gate2SdkConfig.builder()
+                .context(this)
+                .apiKey("your-api-key")
+                .build()
+        )
     }
 }
 
@@ -792,30 +881,79 @@ class MyApplication : Application() {
 <application android:name=".MyApplication">
 ```
 
-#### "Authentication failed"
+#### Payment resume not working
+
+Ensure you are storing **both** `orderId` and `sessionId` from `EsimPaymentRequest`:
 
 ```kotlin
-// Ensure API key is set correctly
-Gate2SdkConfig.builder()
-    .context(this)
-    .apiKey(BuildConfig.API_KEY)
-    .build()
+onProcessPayment = { request ->
+    // MUST store both values
+    pendingOrderId = request.orderId
+    pendingSessionId = request.sessionId
+    processPayment(request)
+}
 ```
 
-If authentication still fails, verify your API key is valid and not expired.
+#### eSIM installation fails
+
+- Check `Gate2Esim.isDeviceEsimCapable(context)` returns `true`
+- Verify eSIM is enabled in device Settings > Network > SIM
+- Android 9+ (API 28) is required for direct installation
 
 ---
 
-## License
+## 12. Support
 
-Commercial License - See https://gate2.travel/license
+| Resource | Contact |
+|----------|---------|
+| **SDK Documentation** | [GitHub Page](https://github.com/gate2-travel/demo-android/blob/main/README.md) |
+| **API Documentation** | [Postman Collection](https://documenter.getpostman.com/view/7713462/2sB3dWq6UM) |
+| **Developer Portal** | [developers.gate2.travel](https://developers.gate2.travel) |
+| **GitHub Issues** | [github.com/gate2-travel/demo-android](https://github.com/gate2-travel/demo-android) |
+| **Email Support** | [support@gate2.travel](mailto:support@gate2.travel) |
+
+---
+
+## Glossary
+
+| Term | Definition |
+|------|------------|
+| **eSIM** | Embedded SIM — digital SIM without physical card |
+| **SM-DP+** | Subscription Manager for eSIM profiles |
+| **QR Code** | Quick Response code for eSIM activation |
+| **EID** | eSIM Identifier |
+| **ICCID** | Integrated Circuit Card Identifier — unique SIM card number |
+| **eUICC** | Embedded Universal Integrated Circuit Card — eSIM hardware chip |
+| **mTLS** | Mutual TLS — client + server certificate authentication |
+| **Top-Up** | Adding additional data to an existing eSIM profile |
+
+---
+
+## Changelog
+
+### v1.0.6 (February 2026)
+- New API: `Gate2Esim.start()`, `resumeAfterPayment()`, `showMyEsims()`
+- New API: `isAvailable()`, `isDeviceEsimCapable()`
+- Structured error handling with `EsimError` and `EsimErrorCode` (20 error codes)
+- eSIM device installation via `onEsimInstalled` callback
+- My eSIMs management screen with top-up support
+- `EsimPaymentRequest` with `sessionId`, `isTopUp`, `iccid` fields
+- Maven coordinates: `travel.gate2:esim`
+- R8 log stripping, AES-256-GCM encrypted mTLS certificate
+- Backward-compatible string-based `onFail` support
+
+### v1.0.0 (January 2026)
+- Initial release
+- eSIM data plan purchasing and activation
+- Certificate pinning
+- Debug logging support
 
 ---
 
 <div align="center">
 
-**Gate2 eSIM SDK** - Complete eSIM Solution for Android
+**Gate2 eSIM SDK** v1.0.6 — eSIM Data Plan Integration for Android
 
-© 2026 Gate2 Travel. All rights reserved.
+&copy; 2026 Gate2 Travel. All rights reserved.
 
 </div>
