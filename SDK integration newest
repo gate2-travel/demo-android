@@ -1,0 +1,455 @@
+# Gate2 eSIM SDK — Unibank Android Integration
+
+> **Artifact:** `travel.gate2:esim-unibank:1.1.4`
+> **Scope:** eSIM only. Flights and Hotels are separate artifacts and are not covered here.
+> **Last updated:** 2026-07-28
+
+This guide covers everything needed to ship the Gate2 eSIM flow inside the Unibank Android app.
+The Unibank brand build is a distinct artifact — brand colours, the welcome screen and the backend
+endpoint are compiled in, so there is no brand configuration to do at runtime.
+
+---
+
+## 1. Requirements
+
+| | |
+|---|---|
+| **minSdk** | 24 (the library's floor) |
+| **eSIM functionality** | **API 28+.** Android's `EuiccManager` does not exist below API 28, so eSIM cannot work on API 24–27. Gate the entry point — see [§9](#9-hiding-the-feature-on-unsupported-devices). |
+| **compileSdk** | 35 |
+| **Java / Kotlin** | JVM target 11 |
+| **UI toolkit** | None required. The SDK renders its own Compose UI inside its own Activity; your app does not need Compose. |
+| **Access token** | A Gate2-issued API key, supplied by Gate2. It is sent as the `X-API-Key` header; module entitlement is enforced server-side and is not parsed on the client. |
+
+## 2. Add the dependency
+
+```kotlin
+// app/build.gradle.kts
+dependencies {
+    implementation("travel.gate2:esim-unibank:1.1.4")
+}
+```
+
+That is the only line required — the shared `travel.gate2:core-unibank` artifact arrives
+transitively. **Do not declare `core` yourself**; pinning it separately can desynchronise the two.
+
+This artifact targets the **production** backend (`gw.gate2.travel`). A staging build that points at
+`api.gate2.travel` exists as `travel.gate2:esim-unibank-staging:1.1.4`, but **it is not currently
+published to Maven Central** — request it from Gate2 if your QA cycle needs it.
+
+> **Never pin a version with a brand or environment suffix** (`1.1.4-unibank`, `1.0.20-test`). That
+> scheme is retired. Brand and environment are part of the artifact ID; the version is plain semver.
+
+### What the SDK adds to your manifest
+
+These are merged automatically by the Android build. Listing them here because they usually need to
+clear a security review:
+
+| Permission | Why |
+|---|---|
+| `INTERNET` | API calls to the Gate2 backend |
+| `READ_PHONE_STATE` | Detect eSIM/eUICC capability and existing subscriptions |
+| `READ_BASIC_PHONE_STATE` | Same, on newer API levels |
+| `WRITE_SETTINGS` | Required by the system eSIM activation flow |
+| `USE_CREDENTIALS` | eUICC subscription provisioning |
+
+The SDK also declares one internal `Activity` (`com.gate2.sdk.esim.internal.EsimActivity`,
+`exported="false"`). No launcher entries, no services, no receivers, no content providers.
+
+Transport security is handled inside the SDK: certificate pinning and the mTLS client certificate
+are embedded. There is nothing to configure and no certificate for you to ship.
+
+## 3. Initialize the SDK
+
+Call this once. `Application.onCreate()` is the natural place, but anywhere before the first
+`Gate2Esim` call works.
+
+```kotlin
+import com.gate2.sdk.core.Gate2TravelSdk
+import com.gate2.sdk.core.config.Gate2SdkConfig
+import com.gate2.sdk.core.config.SdkLogLevel
+
+class UnibankApplication : Application() {
+    override fun onCreate() {
+        super.onCreate()
+
+        if (Gate2TravelSdk.isInitialized()) return   // guard: initialize() throws if called twice
+
+        Gate2TravelSdk.initialize(
+            Gate2SdkConfig.builder()
+                .context(this)
+                .apiKey(BuildConfig.GATE2_ACCESS_TOKEN)  // your Gate2-issued JWT
+                .logLevel(if (BuildConfig.DEBUG) SdkLogLevel.DEBUG else SdkLogLevel.NONE)
+                .build()
+        )
+    }
+}
+```
+
+**`Gate2TravelSdk.initialize()` throws `IllegalStateException` if the SDK is already initialized**, so
+always guard with `isInitialized()`. That is its *only* failure mode — the client does not parse or
+validate the access key, so a wrong or expired key does not fail here. It surfaces later as
+`UNAUTHORIZED` (HTTP 401) on the first API call.
+
+### `Gate2SdkConfig.Builder` reference
+
+| Method | Required | Notes |
+|---|---|---|
+| `.context(Context)` | **yes** | Stored as `applicationContext` |
+| `.apiKey(String)` | **yes** | Your Gate2 JWT. Must not be blank. |
+| `.logLevel(SdkLogLevel)` | no | `ALL`, `DEBUG`, `INFO`, `WARN`, `ERROR`, `FATAL`, `NONE`. Default `NONE`. |
+| `.enableLogging(Boolean)` | no | Shorthand: `true` → `DEBUG`, `false` → `NONE` |
+| `.onLog { entry -> }` | no | Route SDK logs into your own logging pipeline |
+| `.theme(Gate2Theme)` | no | See [§10](#10-branding-and-theming) |
+| `.clientCertificate(...)` | **deprecated** | mTLS is internal now. Remove any call to this. |
+
+Keep the access token out of source control — inject it via `BuildConfig` from a Gradle property or
+your CI secret store.
+
+## 4. Launch the eSIM flow
+
+```kotlin
+import com.gate2.sdk.esim.Gate2Esim
+
+Gate2Esim.start(
+    activity = this,
+    sessionId = sessionId,          // required — see below
+    callbacks = esimCallbacks,
+    userId = currentUser.id,        // optional but strongly recommended
+    language = "az",                // "en", "az", "ru"
+    title = "eSIM"                  // toolbar title
+)
+```
+
+### `sessionId`
+
+**Required, and must not be blank.** Generate one per eSIM session in your app (a UUID is fine) and
+keep it for as long as that purchase attempt is alive — you will need the *same* value again after
+payment (§5). The SDK sends it as `X-Session-Id` on every request so Gate2 can correlate a purchase
+across the payment hop. Persist it across process death (`onSaveInstanceState`) if the payment
+journey leaves your app.
+
+### Full `start()` signature
+
+| Parameter | Default | Notes |
+|---|---|---|
+| `activity: Activity` | — | Launch context |
+| `sessionId: String` | — | Required, non-blank |
+| `callbacks: EsimCallbacks` | — | See [§6](#6-callbacks) |
+| `userId: String?` | `null` | Order tracking; recommended |
+| `language: String` | `"en"` | UI language |
+| `accentColor: Int` | Unibank orange `0xFFFF5400` | ARGB int; already correct for Unibank |
+| `fontResId: Int` | `0` (bundled Inter) | `@FontRes` for your own typeface |
+| `title: String` | `"eSIM"` | Toolbar title |
+| `esimLabel: String?` | `null` | Best-effort display name set on the installed subscription |
+
+### Failure behaviour
+
+`start()` **does not throw.** If the SDK is uninitialized, the token does not grant eSIM access, or
+`sessionId` is blank, it invokes `callbacks.onFail(...)` and returns. Always supply `onFail`.
+
+## 5. Payment — the part to get right
+
+Gate2 never takes payment. The SDK creates an order, hands it to you, and waits for you to come
+back. The flow is:
+
+```
+Gate2Esim.start(…)
+    │
+    │  user picks a plan, SDK calls Create Order
+    ▼
+onProcessPayment(EsimPaymentRequest)      ← your payment UI runs here
+    │                                       SDK's Activity finishes
+    │  you charge the customer
+    ▼
+Gate2Esim.resumeAfterPayment(orderId, sessionId, …)
+    │
+    ▼
+onComplete()                              ← SDK confirms the order and installs the eSIM
+```
+
+### Store both `orderId` and `sessionId`
+
+This is the single most common integration mistake. The SDK's Activity **finishes** while your
+payment screens are in front, so the callback objects you passed to `start()` are gone by the time
+payment returns. You must persist both identifiers and pass them to a fresh `resumeAfterPayment()`
+call with fresh callbacks.
+
+```kotlin
+onProcessPayment = { request ->
+    // Persist durably — the user may be gone for minutes, and your process may die.
+    paymentPrefs.edit()
+        .putString("gate2_order_id", request.orderId)
+        .putString("gate2_session_id", request.sessionId)
+        .apply()
+
+    startYourPaymentFlow(
+        amount = request.amount,
+        currency = request.currency,
+        reference = request.orderId
+    )
+}
+```
+
+Then, when payment succeeds — from your deep link handler, `onActivityResult`, or wherever your
+payment provider returns:
+
+```kotlin
+Gate2Esim.resumeAfterPayment(
+    activity = this,
+    orderId = paymentPrefs.getString("gate2_order_id", null) ?: return,
+    sessionId = paymentPrefs.getString("gate2_session_id", null) ?: return,
+    callbacks = EsimCallbacks(
+        onComplete = { clearPaymentState(); showSuccess() },
+        onCancel   = { clearPaymentState() },
+        onFail     = { error -> clearPaymentState(); handleError(error) }
+    )
+)
+```
+
+If payment **fails or is abandoned**, do not call `resumeAfterPayment` — just clear your stored
+state. The order expires on the Gate2 side.
+
+> **Do not use `Gate2TravelSdk.notifyPaymentResult()`.** It is deprecated precisely because of the
+> stale-callback problem above. `Gate2Esim.resumeAfterPayment()` replaces it.
+
+### `EsimPaymentRequest`
+
+```kotlin
+data class EsimPaymentRequest(
+    val orderId: String,        // persist this
+    val sessionId: String,      // persist this
+    val userId: String,
+    val productId: String,
+    val productName: String,
+    val amount: Double,
+    val currency: String,       // ISO 4217, e.g. "AZN"
+    val dataLimit: String,      // e.g. "5GB", "Unlimited"
+    val validityDays: Int,
+    val coverage: List<String>, // covered countries/regions
+    val isTopUp: Boolean = false,
+    val iccid: String? = null   // set for top-up orders
+)
+```
+
+`isTopUp` is `true` when the customer is topping up an existing eSIM rather than buying a new one.
+The charge path is identical; use it for your own receipt wording if you want to distinguish them.
+
+## 6. Callbacks
+
+```kotlin
+import com.gate2.sdk.esim.EsimCallbacks
+import com.gate2.sdk.esim.api.EsimError
+
+val esimCallbacks = EsimCallbacks(
+    onComplete = {
+        // Order completed and eSIM installed.
+    },
+    onCancel = {
+        // User backed out. Do NOT finish your host Activity here —
+        // back already returns the user to your app.
+    },
+    onFail = { error: EsimError ->
+        handleError(error)
+    },
+    onProcessPayment = { request ->
+        // See §5
+    },
+    onApiResponse = { statusCode, errorMessage ->
+        // Optional: fires on every HTTP response. Useful for your own monitoring.
+        analytics.track("gate2_http", statusCode, errorMessage)
+    }
+)
+```
+
+Every callback is optional, but ship `onFail` and `onProcessPayment` at minimum — without the latter
+no purchase can complete.
+
+**On `onCancel` / `onComplete`: do not call `finish()` on your own Activity.** The eSIM UI is a
+separate Activity; pressing back already returns the user to your screen. Calling `finish()` in these
+callbacks is what makes the host app appear to exit.
+
+A `(String) -> Unit` form of `onFail` is also accepted for brevity:
+
+```kotlin
+EsimCallbacks(onFail = { message: String -> toast(message) })
+```
+
+## 7. Error handling
+
+`EsimError` carries structured detail rather than just a string:
+
+```kotlin
+data class EsimError(
+    val code: EsimErrorCode,
+    val message: String,                    // display-ready
+    val cause: Throwable? = null,
+    val isRetryable: Boolean = false,
+    val httpStatusCode: Int? = null         // set for HTTP errors
+)
+```
+
+```kotlin
+private fun handleError(error: EsimError) {
+    when (error.code) {
+        EsimErrorCode.NETWORK_ERROR ->
+            if (error.isRetryable) showRetryDialog() else showOffline()
+
+        EsimErrorCode.UNAUTHORIZED,
+        EsimErrorCode.FORBIDDEN ->
+            reportToBackend(error)          // bad or expired API key — not user-fixable
+
+        EsimErrorCode.MODULE_ACCESS_DENIED ->
+            reportToBackend(error)          // build/init problem, not an entitlement one —
+                                            // see §12
+
+        EsimErrorCode.DEVICE_NOT_SUPPORTED,
+        EsimErrorCode.ESIM_EUICC_DISABLED ->
+            showDeviceUnsupported()
+
+        EsimErrorCode.PAYMENT_FAILED ->
+            returnToPaymentRetry()
+
+        else -> showGenericError(error.message)
+    }
+    analytics.logError(error.code.name, error.httpStatusCode)
+}
+```
+
+### Full `EsimErrorCode` list
+
+| Group | Codes |
+|---|---|
+| SDK state | `SDK_NOT_INITIALIZED`, `MODULE_ACCESS_DENIED`, `DEVICE_NOT_SUPPORTED` |
+| Validation | `INVALID_SESSION_ID`, `INVALID_ORDER_ID`, `INVALID_USER_ID`, `VALIDATION_ERROR` |
+| Network | `NETWORK_ERROR` |
+| HTTP | `UNAUTHORIZED`, `FORBIDDEN`, `NOT_FOUND`, `RATE_LIMITED`, `SERVER_ERROR` |
+| Order | `NO_PRODUCT_SELECTED`, `ORDER_CREATION_FAILED`, `PAYMENT_FAILED`, `ORDER_CONFIRMATION_FAILED` |
+| Installation | `ESIM_INSTALLATION_FAILED`, `ESIM_EUICC_DISABLED` |
+| Other | `PARSE_ERROR`, `UNKNOWN` |
+
+An `EsimException` wrapper is also available if you prefer to surface these through an
+exception-based error pipeline.
+
+## 8. "My eSIMs" screen
+
+Open the customer's purchased eSIMs directly, bypassing the catalogue:
+
+```kotlin
+Gate2Esim.showMyEsims(
+    activity = this,
+    sessionId = sessionId,
+    callbacks = esimCallbacks,
+    userId = currentUser.id,   // REQUIRED here (unlike start(), where it is optional)
+    language = "az"
+)
+```
+
+Note the asymmetry: `userId` is **required and must be non-blank** for `showMyEsims`, because the
+list is scoped to a user. A blank value invokes `onFail` and returns.
+
+## 9. Hiding the feature on unsupported devices
+
+Two independent checks — run both before showing an eSIM entry point:
+
+```kotlin
+// Hardware/OS: is this device eSIM-capable at all?
+// Returns false on API < 28 (EuiccManager does not exist) and where eUICC is disabled.
+val deviceOk = Gate2Esim.isDeviceEsimCapable(context)
+
+// SDK state: is the SDK initialized, and is the eSIM module registered on the classpath?
+val moduleOk = Gate2Esim.isAvailable()
+
+if (deviceOk && moduleOk) showEsimEntryPoint()
+```
+
+`isAvailable()` never throws — it returns `false` if the SDK is uninitialized. Note it reports SDK
+**state**, not entitlement: once `initialize()` has run and the `esim-unibank` artifact is on the
+classpath, it is `true`. Your account's entitlement is enforced by the backend, so an unentitled key
+surfaces as an HTTP error during the flow rather than here.
+
+Roughly, an unsupported device means: API < 28, a device with no eUICC hardware, or an eUICC that
+the carrier/OEM has disabled. Users on those devices should not see the feature at all rather than
+be shown an error after tapping.
+
+## 10. Branding and theming
+
+**The Unibank build already carries Unibank branding.** The accent colour (`#FF5400`), the welcome
+screen and brand assets are compiled into `esim-unibank`. In the normal case you do not pass a theme
+at all.
+
+Per-launch overrides, if you need them:
+
+```kotlin
+Gate2Esim.start(
+    activity = this,
+    sessionId = sessionId,
+    callbacks = esimCallbacks,
+    accentColor = ContextCompat.getColor(this, R.color.unibank_accent),
+    fontResId = R.font.unibank_sans,   // 0 = SDK's bundled Inter
+    title = "eSIM"
+)
+```
+
+App-wide theming goes through `Gate2Theme` at initialization — colours, spacing, shapes, typography
+and component dimensions, with presets (`cleanWhite`, `darkMode`, `rounded`, `minimal`) and a
+`Gate2Theme.simple(primary, secondary)` shortcut. It can also be swapped at runtime with
+`Gate2TravelSdk.updateTheme(theme)`. Reach for this only if the compiled-in Unibank look needs to
+change; contact Gate2 first, since a brand change is normally made in the brand build itself.
+
+## 11. ProGuard / R8
+
+**Nothing to add.** The AAR ships unminified with its own `consumer-rules.pro`, so your app's R8 pass
+obfuscates the SDK along with your own code using rules the SDK supplies. Do not add manual `-keep`
+rules for `com.gate2.sdk.**` — they would only reduce your own obfuscation coverage.
+
+## 12. Troubleshooting
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| `IllegalStateException: SDK already initialized` | `initialize()` called twice | Guard with `isInitialized()` |
+| `onFail` with `SDK_NOT_INITIALIZED` | `Gate2Esim` called before `initialize()` | Initialize in `Application.onCreate()` |
+| `onFail` with `MODULE_ACCESS_DENIED` | SDK not initialized, or the eSIM module is not on the classpath / failed to register. **Not** a token problem. | Confirm `initialize()` ran, and that `esim-unibank` is actually a declared dependency |
+| `onFail` with `UNAUTHORIZED` (401) | Wrong or expired access key | Check the key, and that it matches production vs staging |
+| `onFail` with `INVALID_SESSION_ID` | `sessionId` blank | Generate one per session; never pass `""` |
+| Purchase never completes | `resumeAfterPayment` not called, or wrong `sessionId` | Persist **both** `orderId` and `sessionId` (§5) |
+| App exits after the eSIM flow | Host called `finish()` in `onComplete`/`onCancel` | Remove it — back already returns to your app |
+| eSIM entry point shown but always errors | Device is not eSIM-capable | Gate on `isDeviceEsimCapable()` (§9) |
+| `Duplicate class com.gate2.sdk.…` at build time | Two brand artifacts on the classpath | Depend on exactly one `esim-<company>` |
+
+To capture SDK internals during integration, set `.logLevel(SdkLogLevel.ALL)` and supply
+`.onLog { entry -> Log.d("Gate2", "${entry.level}: ${entry.message}") }`. Turn this back down for
+release builds.
+
+## 13. Pre-release checklist
+
+- [ ] `travel.gate2:esim-unibank:1.1.4` is the only Gate2 dependency; `core` is not declared separately
+- [ ] Access token injected from a secret store, not committed
+- [ ] `logLevel` is `NONE` in release builds
+- [ ] `initialize()` guarded by `isInitialized()`
+- [ ] eSIM entry point gated on `isDeviceEsimCapable()` **and** `isAvailable()`
+- [ ] `onFail` implemented and mapped to real UI for every `EsimErrorCode` group
+- [ ] Both `orderId` **and** `sessionId` persisted durably in `onProcessPayment`
+- [ ] `resumeAfterPayment()` called on payment success; state cleared on failure
+- [ ] Nothing calls `finish()` inside `onComplete` / `onCancel`
+- [ ] Tested on a real API 28+ eSIM-capable handset — emulators have no eUICC
+- [ ] Tested payment resume after the app is killed mid-payment
+- [ ] The five merged permissions have cleared security review
+
+## 14. API summary
+
+| Symbol | Package |
+|---|---|
+| `Gate2TravelSdk.initialize` / `.isInitialized` / `.updateTheme` | `com.gate2.sdk.core` |
+| `Gate2SdkConfig`, `Gate2Theme`, `SdkLogLevel` | `com.gate2.sdk.core.config` |
+| `Gate2Esim.start` / `.resumeAfterPayment` / `.showMyEsims` / `.isAvailable` / `.isDeviceEsimCapable` | `com.gate2.sdk.esim` |
+| `EsimCallbacks` | `com.gate2.sdk.esim` |
+| `EsimPaymentRequest`, `EsimError`, `EsimErrorCode`, `EsimException` | `com.gate2.sdk.esim.api` |
+
+Note the split: Maven group is `travel.gate2`, Kotlin packages are `com.gate2.sdk.*`. That is
+expected, not a typo.
+
+---
+
+**Support:** support@gate2.travel — include the SDK version (`Gate2TravelSdk.getInstance().getVersion()`),
+the `EsimErrorCode`, and the `orderId` / `sessionId` for any failed purchase.
