@@ -1,12 +1,13 @@
-# Gate2 eSIM SDK — Unibank Android Integration
+# Gate2 eSIM SDK — Android Integration Guide
 
-> **Artifact:** `travel.gate2:esim-unibank:1.1.4`
+> **Artifact:** `travel.gate2:esim-<company>:1.2.1`
 > **Scope:** eSIM only. Flights and Hotels are separate artifacts and are not covered here.
-> **Last updated:** 2026-07-28
+> **Last updated:** 2026-10-26
 
-This guide covers everything needed to ship the Gate2 eSIM flow inside the Unibank Android app.
-The Unibank brand build is a distinct artifact — brand colours, the welcome screen and the backend
-endpoint are compiled in, so there is no brand configuration to do at runtime.
+This guide covers everything needed to ship the Gate2 eSIM flow inside your Android app.
+Your brand build is a distinct artifact — brand colours, the welcome screen and the backend
+endpoint are compiled in, so there is no brand configuration to do at runtime. Throughout this
+guide `<company>` stands for the brand identifier Gate2 assigned to you.
 
 ---
 
@@ -26,18 +27,20 @@ endpoint are compiled in, so there is no brand configuration to do at runtime.
 ```kotlin
 // app/build.gradle.kts
 dependencies {
-    implementation("travel.gate2:esim-unibank:1.1.4")
+    implementation("travel.gate2:esim-<company>:1.2.1")
 }
 ```
 
-That is the only line required — the shared `travel.gate2:core-unibank` artifact arrives
+That is the only line required — the shared `travel.gate2:core-<company>` artifact arrives
 transitively. **Do not declare `core` yourself**; pinning it separately can desynchronise the two.
 
 This artifact targets the **production** backend (`gw.gate2.travel`). A staging build that points at
-`api.gate2.travel` exists as `travel.gate2:esim-unibank-staging:1.1.4`, but **it is not currently
-published to Maven Central** — request it from Gate2 if your QA cycle needs it.
+`api.gate2.travel` is published as `travel.gate2:esim-<company>-staging:1.2.1` — always the same version
+as the production artifact. Check that the version you pin exists on Maven Central
+(`https://repo1.maven.org/maven2/travel/gate2/esim-<company>-staging/`) before your QA cycle; if it is
+missing, request it from Gate2.
 
-> **Never pin a version with a brand or environment suffix** (`1.1.4-unibank`, `1.0.20-test`). That
+> **Never pin a version with a brand or environment suffix** (`1.2.1-<company>`, `1.0.20-test`). That
 > scheme is retired. Brand and environment are part of the artifact ID; the version is plain semver.
 
 ### What the SDK adds to your manifest
@@ -69,7 +72,7 @@ import com.gate2.sdk.core.Gate2TravelSdk
 import com.gate2.sdk.core.config.Gate2SdkConfig
 import com.gate2.sdk.core.config.SdkLogLevel
 
-class UnibankApplication : Application() {
+class MyApplication : Application() {
     override fun onCreate() {
         super.onCreate()
 
@@ -87,9 +90,16 @@ class UnibankApplication : Application() {
 ```
 
 **`Gate2TravelSdk.initialize()` throws `IllegalStateException` if the SDK is already initialized**, so
-always guard with `isInitialized()`. That is its *only* failure mode — the client does not parse or
-validate the access key, so a wrong or expired key does not fail here. It surfaces later as
-`UNAUTHORIZED` (HTTP 401) on the first API call.
+always guard with `isInitialized()`. That is its *only* failure mode.
+
+The client never parses or validates the access key, so a wrong, expired or malformed key does **not**
+fail here — it initializes cleanly and surfaces later as `UNAUTHORIZED` (HTTP 401) on the first API
+call. Do not wrap `initialize()` in a `try/catch` hoping to validate your key at startup; that branch
+is unreachable. Build the `UNAUTHORIZED` path in your callbacks instead (§7).
+
+`Gate2SdkConfig.builder().build()` does throw `IllegalArgumentException`, but only for *missing* values
+— a blank `apiKey` ("API key cannot be blank"), or a `context`/`apiKey` never set. Those fire before
+`initialize()` is entered and say nothing about whether the key is valid.
 
 ### `Gate2SdkConfig.Builder` reference
 
@@ -116,7 +126,7 @@ Gate2Esim.start(
     sessionId = sessionId,          // required — see below
     callbacks = esimCallbacks,
     userId = currentUser.id,        // optional but strongly recommended
-    language = "az",                // "en", "az", "ru"
+    language = "en",                // "en", "az", "ru"
     title = "eSIM"                  // toolbar title
 )
 ```
@@ -138,7 +148,7 @@ journey leaves your app.
 | `callbacks: EsimCallbacks` | — | See [§6](#6-callbacks) |
 | `userId: String?` | `null` | Order tracking; recommended |
 | `language: String` | `"en"` | UI language |
-| `accentColor: Int` | Unibank orange `0xFFFF5400` | ARGB int; already correct for Unibank |
+| `accentColor: Int` | your brand's primary colour | ARGB int; already correct for your brand build |
 | `fontResId: Int` | `0` (bundled Inter) | `@FontRes` for your own typeface |
 | `title: String` | `"eSIM"` | Toolbar title |
 | `esimLabel: String?` | `null` | Best-effort display name set on the installed subscription |
@@ -202,10 +212,16 @@ Gate2Esim.resumeAfterPayment(
     callbacks = EsimCallbacks(
         onComplete = { clearPaymentState(); showSuccess() },
         onCancel   = { clearPaymentState() },
-        onFail     = { error -> clearPaymentState(); handleError(error) }
+        onFail     = { error: EsimError -> clearPaymentState(); handleError(error) }
     )
 )
 ```
+
+> **Annotate the `onFail` lambda parameter.** `EsimCallbacks` is both a data class (whose `onFail` takes
+> `EsimError`) and a same-named top-level function in the same package (whose `onFail` takes `String`).
+> An un-annotated single-parameter lambda is ambiguous between the two, so write
+> `{ error: EsimError -> … }` — or `{ message: String -> … }` if you want the string form. This applies
+> to every `EsimCallbacks(...)` you construct.
 
 If payment **fails or is abandoned**, do not call `resumeAfterPayment` — just clear your stored
 state. The order expires on the Gate2 side.
@@ -341,7 +357,7 @@ Gate2Esim.showMyEsims(
     sessionId = sessionId,
     callbacks = esimCallbacks,
     userId = currentUser.id,   // REQUIRED here (unlike start(), where it is optional)
-    language = "az"
+    language = "en"
 )
 ```
 
@@ -364,7 +380,7 @@ if (deviceOk && moduleOk) showEsimEntryPoint()
 ```
 
 `isAvailable()` never throws — it returns `false` if the SDK is uninitialized. Note it reports SDK
-**state**, not entitlement: once `initialize()` has run and the `esim-unibank` artifact is on the
+**state**, not entitlement: once `initialize()` has run and the `esim-<company>` artifact is on the
 classpath, it is `true`. Your account's entitlement is enforced by the backend, so an unentitled key
 surfaces as an HTTP error during the flow rather than here.
 
@@ -374,9 +390,8 @@ be shown an error after tapping.
 
 ## 10. Branding and theming
 
-**The Unibank build already carries Unibank branding.** The accent colour (`#FF5400`), the welcome
-screen and brand assets are compiled into `esim-unibank`. In the normal case you do not pass a theme
-at all.
+**Your brand build already carries your branding.** The accent colour, the welcome screen and
+brand assets are compiled into `esim-<company>`. In the normal case you do not pass a theme at all.
 
 Per-launch overrides, if you need them:
 
@@ -385,8 +400,8 @@ Gate2Esim.start(
     activity = this,
     sessionId = sessionId,
     callbacks = esimCallbacks,
-    accentColor = ContextCompat.getColor(this, R.color.unibank_accent),
-    fontResId = R.font.unibank_sans,   // 0 = SDK's bundled Inter
+    accentColor = ContextCompat.getColor(this, R.color.brand_accent),
+    fontResId = R.font.brand_sans,     // 0 = SDK's bundled Inter
     title = "eSIM"
 )
 ```
@@ -394,7 +409,7 @@ Gate2Esim.start(
 App-wide theming goes through `Gate2Theme` at initialization — colours, spacing, shapes, typography
 and component dimensions, with presets (`cleanWhite`, `darkMode`, `rounded`, `minimal`) and a
 `Gate2Theme.simple(primary, secondary)` shortcut. It can also be swapped at runtime with
-`Gate2TravelSdk.updateTheme(theme)`. Reach for this only if the compiled-in Unibank look needs to
+`Gate2TravelSdk.updateTheme(theme)`. Reach for this only if the compiled-in brand look needs to
 change; contact Gate2 first, since a brand change is normally made in the brand build itself.
 
 ## 11. ProGuard / R8
@@ -409,7 +424,7 @@ rules for `com.gate2.sdk.**` — they would only reduce your own obfuscation cov
 |---|---|---|
 | `IllegalStateException: SDK already initialized` | `initialize()` called twice | Guard with `isInitialized()` |
 | `onFail` with `SDK_NOT_INITIALIZED` | `Gate2Esim` called before `initialize()` | Initialize in `Application.onCreate()` |
-| `onFail` with `MODULE_ACCESS_DENIED` | SDK not initialized, or the eSIM module is not on the classpath / failed to register. **Not** a token problem. | Confirm `initialize()` ran, and that `esim-unibank` is actually a declared dependency |
+| `onFail` with `MODULE_ACCESS_DENIED` | SDK not initialized, or `com.gate2.sdk.esim.internal.EsimModule` was not found at runtime. Modules register **by reflection** and a missing class fails silently. **Not** a token problem — reissuing the key will not help. | Confirm `initialize()` ran and that `esim-<company>` actually resolved. If it only fails in release builds, R8 stripped `EsimModule` — the AAR's `consumer-rules.pro` keeps it, so check your consumer rules are being applied and not overridden. |
 | `onFail` with `UNAUTHORIZED` (401) | Wrong or expired access key | Check the key, and that it matches production vs staging |
 | `onFail` with `INVALID_SESSION_ID` | `sessionId` blank | Generate one per session; never pass `""` |
 | Purchase never completes | `resumeAfterPayment` not called, or wrong `sessionId` | Persist **both** `orderId` and `sessionId` (§5) |
@@ -423,7 +438,7 @@ release builds.
 
 ## 13. Pre-release checklist
 
-- [ ] `travel.gate2:esim-unibank:1.1.4` is the only Gate2 dependency; `core` is not declared separately
+- [ ] `travel.gate2:esim-<company>:1.2.1` is the only Gate2 dependency; `core` is not declared separately
 - [ ] Access token injected from a secret store, not committed
 - [ ] `logLevel` is `NONE` in release builds
 - [ ] `initialize()` guarded by `isInitialized()`
